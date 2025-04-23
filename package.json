@@ -17,7 +17,8 @@
     "build": "tsc && vite build && electron-builder",
     "preview": "vite preview",
     "pretest": "vite build --mode=test",
-    "test": "vitest run"
+    "test": "vitest run",
+    "dist": "tsc && vite build && electron-builder --win --x64"
   },
   "dependencies": {
     "electron-updater": "^6.3.9"
