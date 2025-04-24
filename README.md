@@ -89,3 +89,24 @@ export default {
 
 - [C/C++ addons, Node.js modules - Pre-Bundling](https://github.com/electron-vite/vite-plugin-electron-renderer#dependency-pre-bundling)
 - [dependencies vs devDependencies](https://github.com/electron-vite/vite-plugin-electron-renderer#dependencies-vs-devdependencies)
+
+
+## Docker打包
+
+1. 启动docker
+2. 执行
+
+```sh
+# 创建镜像
+sudo docker build -t electron-builder-win .
+
+# 如果有报警提示，可以通过在 docker build 命令中指定平台来强制使用 linux/amd64 架构。
+# InvalidBaseImagePlatform: Base image electronuserland/builder:wine was pulled with platform "linux/amd64", expected "linux/arm64" for current build (line 2)
+docker build --platform linux/amd64 -t electron-builder-win .
+
+# build
+docker run --rm -v ${PWD}:/app -v ${PWD##*/}-node-modules:/app/node_modules electron-builder-win
+
+```
+
+
