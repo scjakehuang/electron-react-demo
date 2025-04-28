@@ -96,9 +96,15 @@ export default {
 1. 启动docker
 2. 执行
 
+ <!-- 手动拉取镜像
+如果镜像拉取失败，可以尝试手动拉取镜像： -->
+```sh
+docker pull electronuserland/builder:wine
+```
+
 ```sh
 # 创建镜像
-sudo docker build -t electron-builder-win .
+# sudo docker build -t electron-builder-win .
 
 # 如果有报警提示，可以通过在 docker build 命令中指定平台来强制使用 linux/amd64 架构。
 # InvalidBaseImagePlatform: Base image electronuserland/builder:wine was pulled with platform "linux/amd64", expected "linux/arm64" for current build (line 2)
@@ -106,6 +112,10 @@ docker build --platform linux/amd64 -t electron-builder-win .
 
 # build
 docker run --rm -v ${PWD}:/app -v ${PWD##*/}-node-modules:/app/node_modules electron-builder-win
+# 参数说明：
+# --rm：容器运行结束后自动删除。
+# -v ${PWD}:/app：将当前项目目录挂载到容器的 /app 目录。
+# -v ${PWD##*/}-node-modules:/app/node_modules：将 node_modules 挂载为独立卷，避免重复安装依赖。
 
 ```
 

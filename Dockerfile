@@ -5,7 +5,8 @@ FROM electronuserland/builder:wine
 WORKDIR /app
 
 # 复制项目文件到容器中
-COPY . .
+# COPY . .
+COPY package*.json ./
 
 # 安装项目依赖
 RUN npm install
