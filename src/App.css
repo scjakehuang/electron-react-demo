@@ -8,6 +8,12 @@
 .logo-box {
   position: relative;
   height: 9em;
+
+}
+.content {
+  -webkit-app-region: drag;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .logo {

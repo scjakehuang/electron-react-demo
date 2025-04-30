@@ -1,9 +1,18 @@
-import { app, BrowserWindow, shell, ipcMain } from 'electron'
+import {
+  app,
+  BrowserWindow,
+  shell,
+  ipcMain,
+  screen,
+  WebContentsView
+} from 'electron'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
 import { update } from './update'
+// 扩展主进程
+import initMainExtend from './mainExtend'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -43,22 +52,40 @@ let win: BrowserWindow | null = null
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
 
-async function createWindow() {
+async function createWindow () {
+  const primaryDisplay = screen.getPrimaryDisplay()
+  const { width, height } = primaryDisplay.workAreaSize
+
+  // Create the browser window.
   win = new BrowserWindow({
+    width: Math.floor(width * 0.9),
+    height: Math.floor(height * 0.9),
     title: 'Main window',
     icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
+    // frame: false,
+    autoHideMenuBar: true,
+    // resizable: false,
+    // center: true,
+    // show: false,
+    backgroundColor: 'red',
     webPreferences: {
-      preload,
+      preload
       // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
       // nodeIntegration: true,
 
       // Consider using contextBridge.exposeInMainWorld
       // Read more on https://www.electronjs.org/docs/latest/tutorial/context-isolation
       // contextIsolation: false,
-    },
+    }
   })
+  // 创建子窗口
+  // const view1 = new WebContentsView()
+  // win.contentView.addChildView(view1)
+  // view1.webContents.loadURL('https://www.baidu.com')
+  // view1.setBounds({ x: 0, y: 0, width: 400, height: 400 })
 
-  if (VITE_DEV_SERVER_URL) { // #298
+  if (VITE_DEV_SERVER_URL) {
+    // #298
     win.loadURL(VITE_DEV_SERVER_URL)
     // Open devTool if the app is not packaged
     win.webContents.openDevTools()
@@ -68,7 +95,9 @@ async function createWindow() {
 
   // Test actively push message to the Electron-Renderer
   win.webContents.on('did-finish-load', () => {
-    win?.webContents.send('main-process-message', new Date().toLocaleString())
+    const userData = app.getPath("userData");
+    win?.webContents.send('main-process-message', new Date().toLocaleString(), userData)
+    // win?.webContents.send('ipc-demo', 'Hello from main process')
   })
 
   // Make all links open with the browser, not with the application
@@ -77,11 +106,22 @@ async function createWindow() {
     return { action: 'deny' }
   })
 
+  win.on('resized', (...args) => {
+    // console.log('Window resized',args)
+    // const rect = win.getBounds()
+    // console.log('Window bounds:', rect,e)
+  })
+
   // Auto update
   update(win)
 }
 
-app.whenReady().then(createWindow)
+app
+  .whenReady()
+  .then(createWindow)
+  .then(() => {
+    initMainExtend()
+  })
 
 app.on('window-all-closed', () => {
   win = null
@@ -111,8 +151,8 @@ ipcMain.handle('open-win', (_, arg) => {
     webPreferences: {
       preload,
       nodeIntegration: true,
-      contextIsolation: false,
-    },
+      contextIsolation: false
+    }
   })
 
   if (VITE_DEV_SERVER_URL) {
