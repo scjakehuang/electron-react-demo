@@ -4,6 +4,7 @@ interface Window {
   // expose in the `electron/preload/index.ts`
   ipcRenderer: import('electron').IpcRenderer,
   electronApi: {
-    getWindowInfo: () => Promise<any>
+    getWindowInfo: () => Promise<any>,
+    httpRequest: (url: string, method: string, data: any) => Promise<any>
   }
 }

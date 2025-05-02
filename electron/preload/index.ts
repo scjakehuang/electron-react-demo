@@ -26,6 +26,9 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
 contextBridge.exposeInMainWorld('electronApi', {
   getWindowInfo: () => {
     return ipcRenderer.invoke('get-window-info')
+  },
+  httpRequest: (url: string, method: string, data: any) => {
+    return ipcRenderer.invoke('ipc-httpRequest', url, method, data)
   }
 })
 
