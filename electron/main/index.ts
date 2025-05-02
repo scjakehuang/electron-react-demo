@@ -13,6 +13,7 @@ import os from 'node:os'
 import { update } from './update'
 // 扩展主进程
 import initMainExtend from './mainExtend'
+import logger from '../services/logger'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -121,6 +122,7 @@ app
   .then(createWindow)
   .then(() => {
     initMainExtend()
+    logger.info('Electron App is ready')
   })
 
 app.on('window-all-closed', () => {

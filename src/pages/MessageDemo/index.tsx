@@ -1,6 +1,8 @@
 import { useEffect, memo, useState } from 'react'
 import axios from 'axios'
 
+import log from 'electron-log/renderer'
+
 const MessageDemo = () => {
   return (
     <div className='flex flex-col items-start justify-start h-screen'>
@@ -50,6 +52,18 @@ const MessageDemo = () => {
           }}
         >
           主线程代理转发
+        </button>
+        <button
+          onClick={() => {
+            log.info('Log from the renderer process')
+            log.error('Error from the renderer process', { scope: 'test' })
+            log.warn('Warn from the renderer process', { scope: 'test' })
+            log.debug('Debug from the renderer process', { scope: 'test' })
+            log.silly('Silly from the renderer process', { scope: 'test' })
+            log.verbose('Verbose from the renderer process', { scope: 'test' })
+          }}
+        >
+          生成日志
         </button>
       </div>
     </div>
