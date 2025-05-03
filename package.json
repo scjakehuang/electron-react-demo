@@ -1,9 +1,9 @@
 {
   "name": "tb-finder-demo",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "main": "dist-electron/main/index.js",
   "description": "Electron Vite React boilerplate.",
-  "author": "草鞋没号 <308487730@qq.com>",
+  "author": "Harry Chen",  
   "license": "MIT",
   "private": true,
   "debug": {
