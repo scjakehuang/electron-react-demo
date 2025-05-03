@@ -1,6 +1,5 @@
 import { useEffect, memo, useState } from 'react'
 import axios from 'axios'
-
 import log from 'electron-log/renderer'
 
 const MessageDemo = () => {
@@ -64,6 +63,16 @@ const MessageDemo = () => {
           }}
         >
           生成日志
+        </button>
+        <button onClick={async () => {
+          console.log('调用其他程序', window.electronApi)
+          try {
+            const result = await window.electronApi.lauchApp('Safari', ['http://www.baidu.com']);
+          } catch (error) {
+            log.error('Error Launch App:', error)
+          }
+        }}>
+          调用其他程序
         </button>
       </div>
     </div>

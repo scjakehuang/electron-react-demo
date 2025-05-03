@@ -156,7 +156,6 @@ ipcMain.handle('open-win', (_, arg) => {
       contextIsolation: false
     }
   })
-
   if (VITE_DEV_SERVER_URL) {
     childWindow.loadURL(`${VITE_DEV_SERVER_URL}#${arg}`)
   } else {

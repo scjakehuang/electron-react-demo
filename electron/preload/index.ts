@@ -1,4 +1,6 @@
 import { ipcRenderer, contextBridge, webUtils } from 'electron'
+import { IPC_CHANNEL } from '../enums'
+
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
@@ -25,12 +27,16 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
 
 contextBridge.exposeInMainWorld('electronApi', {
   getWindowInfo: () => {
-    return ipcRenderer.invoke('get-window-info')
+    return ipcRenderer.invoke(IPC_CHANNEL.IPC_GET_WINDOW_INFO)
   },
   httpRequest: (url: string, method: string, data: any) => {
-    return ipcRenderer.invoke('ipc-httpRequest', url, method, data)
+    return ipcRenderer.invoke(IPC_CHANNEL.IPC_HTTP_REQUEST, url, method, data)
+  },
+  lauchApp: (appPath: string, args: string[]) => {
+    return ipcRenderer.invoke(IPC_CHANNEL.IPC_LAUNCH_APP, { appPath, args })
   }
 })
+
 
 // --------- Preload scripts loading ---------
 function domReady (

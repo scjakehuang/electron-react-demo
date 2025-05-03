@@ -44,7 +44,7 @@ const AsyncButton = memo(() => {
         console.log('invoke res:', res)
       }}
     >
-      获取文件信息
+      异步获取信息
     </button>
   )
 })

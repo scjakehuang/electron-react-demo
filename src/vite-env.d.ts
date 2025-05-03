@@ -5,6 +5,7 @@ interface Window {
   ipcRenderer: import('electron').IpcRenderer,
   electronApi: {
     getWindowInfo: () => Promise<any>,
-    httpRequest: (url: string, method: string, data: any) => Promise<any>
+    httpRequest: (url: string, method: string, data: any) => Promise<any>,
+    lauchApp: (appPath: string, args: string[]) => Promise<any>
   }
 }
