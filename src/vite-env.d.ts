@@ -6,6 +6,8 @@ interface Window {
   electronApi: {
     getWindowInfo: () => Promise<any>,
     httpRequest: (url: string, method: string, data: any) => Promise<any>,
-    lauchApp: (appPath: string, args: string[]) => Promise<any>
+    lauchApp: (appPath: string, args: string[]) => Promise<any>,
+    getAppPath: (appName: string) => Promise<any>,
+    getConfig: () => Promise<any>,
   }
 }

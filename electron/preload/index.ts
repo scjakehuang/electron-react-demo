@@ -1,7 +1,6 @@
 import { ipcRenderer, contextBridge, webUtils } from 'electron'
 import { IPC_CHANNEL } from '../enums'
 
-
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
   on (...args: Parameters<typeof ipcRenderer.on>) {
@@ -34,9 +33,14 @@ contextBridge.exposeInMainWorld('electronApi', {
   },
   lauchApp: (appPath: string, args: string[]) => {
     return ipcRenderer.invoke(IPC_CHANNEL.IPC_LAUNCH_APP, { appPath, args })
+  },
+  getAppPath: (appName: string) => {
+    return ipcRenderer.invoke(IPC_CHANNEL.IPC_GET_APP_PATH, appName)
+  },
+  getConfig: () => {
+    return ipcRenderer.invoke(IPC_CHANNEL.IPC_GET_CONFIG)
   }
 })
-
 
 // --------- Preload scripts loading ---------
 function domReady (

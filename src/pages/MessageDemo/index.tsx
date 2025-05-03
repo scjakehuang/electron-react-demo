@@ -74,6 +74,30 @@ const MessageDemo = () => {
         }}>
           调用其他程序
         </button>
+        <button
+          onClick={async () => {
+            try {
+              const result = await window.electronApi.getAppPath('vscode')
+              log.info('获取vscode路径', result)
+            } catch (error) {       
+              log.error('Error 获取App路径:', error)
+            }
+          }}
+        >
+          获取config中vscode启动路径
+        </button>
+        <button
+          onClick={async () => {
+            try {
+              const result = await window.electronApi.getConfig()
+              log.info('获取config', result)
+            } catch (error) {       
+              log.error('Error 获取onfig:', error)
+            }
+          }}
+        >
+          获取config
+        </button>
       </div>
     </div>
   )

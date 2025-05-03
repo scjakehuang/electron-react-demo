@@ -9,6 +9,13 @@
     "dist-electron",
     "dist"
   ],
+  "extraFiles": [
+    {
+      "from": "config/apps.json",
+      "to": "resources/config",
+      "filter": ["**/*"]
+    }
+  ],
   "mac": {
     "artifactName": "${productName}_${version}.${ext}",
     "target": [

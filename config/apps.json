@@ -1,0 +1,11 @@
+{
+  "version": "1.0.0",
+  "allowedApps": {
+    "vscode": {
+      "win": "C:\\Program Files\\Microsoft VS Code\\Code.exe",
+      "macOS": "/Applications/Visual Studio Code.app",
+      "linux": "/usr/bin/code"
+    }
+  },
+  "customPaths": {}
+}

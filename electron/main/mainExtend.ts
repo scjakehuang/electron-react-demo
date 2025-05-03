@@ -2,6 +2,7 @@ import { ipcMain, BrowserWindow } from 'electron'
 import { exec, spawn } from 'child_process'
 import axios from 'axios'
 import { IPC_CHANNEL } from '../enums'
+import { getConfig, getAppPath } from './configLoader'
 
 const initMainExtend = () => {
   ipcMain.on('ipc-example', (event, ...args) => {
@@ -52,7 +53,9 @@ const initMainExtend = () => {
     })
   })
 
-  ipcMain.handle(IPC_CHANNEL.IPC_LAUNCH_APP, (event, { appPath, args = [] }) => {
+  ipcMain.handle(
+    IPC_CHANNEL.IPC_LAUNCH_APP,
+    (event, { appPath, args = [] }) => {
       return new Promise((resolve, reject) => {
         // 跨平台处理
         const command =
@@ -84,6 +87,28 @@ const initMainExtend = () => {
       })
     }
   )
+
+  ipcMain.handle(IPC_CHANNEL.IPC_GET_APP_PATH, (event, appName) => {
+    return new Promise((resolve, reject) => {
+      const appPath = getAppPath(appName)
+      if (appPath) {
+        resolve(appPath)
+      } else {
+        reject(`未找到 ${appName} 的路径`)
+      }
+    })
+  })
+
+  ipcMain.handle(IPC_CHANNEL.IPC_GET_CONFIG, (event) => {
+    return new Promise((resolve, reject) => {
+      const config = getConfig()
+      if (config) {
+        resolve(config)
+      } else {
+        reject(`未找到的配置`)
+      }
+    })
+  })
 }
 
 export default initMainExtend

@@ -14,6 +14,7 @@ import { update } from './update'
 // 扩展主进程
 import initMainExtend from './mainExtend'
 import logger from '../services/logger'
+import initConfig from './configLoader'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -120,6 +121,9 @@ async function createWindow () {
 app
   .whenReady()
   .then(createWindow)
+  .then(() => {
+    initConfig()
+  })
   .then(() => {
     initMainExtend()
     logger.info('Electron App is ready')
