@@ -5,6 +5,8 @@ import logoElectron from '@/assets/logo-electron.svg'
 import { BrowserRouter, Route, Routes, Link } from 'react-router-dom'
 import OfficalDemo from '@/pages/OfficialDemo'
 import MessageDemo from '@/pages/MessageDemo'
+import AboutDemo from '@/pages/AboutDemo'
+
 import './App.css'
 
 function App () {
@@ -48,6 +50,7 @@ function App () {
         <Route path='/' element={<MessageDemo />} />
         {/* <Route path='/about' element={<About />} />  */}
         <Route path='/official' element={<OfficalDemo />} />
+        <Route path='/about' element={<AboutDemo />} />
       </Routes>
     </BrowserRouter>
   )

@@ -116,7 +116,5 @@ docker run --rm -v ${PWD}:/app -v ${PWD##*/}-node-modules:/app/node_modules elec
 # --rm：容器运行结束后自动删除。
 # -v ${PWD}:/app：将当前项目目录挂载到容器的 /app 目录。
 # -v ${PWD##*/}-node-modules:/app/node_modules：将 node_modules 挂载为独立卷，避免重复安装依赖。
-
 ```
-
 
