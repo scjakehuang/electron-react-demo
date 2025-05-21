@@ -47,9 +47,11 @@ export function getAppPath (appName: string | number) {
 
 function safeLoadConfig (configPath: fs.PathOrFileDescriptor) {
   try {
-    return JSON.parse(fs.readFileSync(configPath, 'utf-8'))
+    const res = JSON.parse(fs.readFileSync(configPath, 'utf-8'))
+    console.log('====', res)
+    return res
   } catch (error) {
-    logger.error('配置文件加载失败:', configPath, error)
+    logger.error('加载文件加载失败:', configPath, error)
     return { allowedApps: {}, customPaths: {} }
   }
 }
@@ -58,19 +60,26 @@ function safeLoadConfig (configPath: fs.PathOrFileDescriptor) {
 export function loadConfig () {
   try {
     const configPath = getConfigPath()
+    console.log('====', configPath)
+    // 确保配置文件所在目录存在
+    const configDirectory = path.dirname(configPath);
+    if (!fs.existsSync(configDirectory)) {
+      fs.mkdirSync(configDirectory, { recursive: true });
+    }
     // 首次运行自动创建配置文件
     if (!fs.existsSync(configPath)) {
       const defaultConfig = {
+        version: '1.0.0',
         allowedApps: {},
         customPaths: {}
       }
-      fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2))
+      fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
     }
-    const rawData = fs.readFileSync(configPath, 'utf-8')
-    return JSON.parse(rawData)
+    const rawData = fs.readFileSync(configPath, 'utf-8');
+    return JSON.parse(rawData);
   } catch (error) {
-    console.error('配置文件加载失败:', error)
-    return { allowedApps: {}, customPaths: {} }
+    console.error('配置文件加载失败:', error);
+    return { allowedApps: {}, customPaths: {} };
   }
 }
 
@@ -87,20 +96,6 @@ const initConfig = () => {
     loadConfig()
   } catch (error) {
     logger.error('配置文件初始化失败:', error)
-    const configPath = getConfigPath()
-    // 创建空配置
-    fs.writeFileSync(
-      configPath,
-      JSON.stringify(
-        {
-          version: '1.0.0',
-          allowedApps: {},
-          customPaths: {}
-        },
-        null,
-        2
-      )
-    )
   }
 }
 
