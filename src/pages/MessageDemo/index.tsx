@@ -12,9 +12,10 @@ const MessageDemo = () => {
           onClick={() => {
             axios({
               method: 'get',
-              url: 'http://www.baidu.com',
+              // url: 'http://www.baidu.com',
+              url: 'http://localhost:3000/api/users',
               params: {
-                ID: 12345
+                ID: 123456
               }
             })
               .then(function (response) {
@@ -30,7 +31,7 @@ const MessageDemo = () => {
               })
           }}
         >
-          http请求【去除跨域限制】
+          http请求【去除跨域限制】mock数据
         </button>
         <button
           onClick={() => {

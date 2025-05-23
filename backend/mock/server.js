@@ -1,0 +1,32 @@
+import Koa from 'koa'
+import Router from 'koa-router'
+import Mock from 'mockjs'
+import bodyParser from 'koa-bodyparser'
+
+const app = new Koa();
+const router = new Router();
+
+// 解析请求体（支持 POST）
+app.use(bodyParser());
+
+// 模拟用户列表接口
+router.get('/api/users', (ctx) => {
+    console.log('热更新请求参数：', ctx.request.query);
+    const data = Mock.mock({
+        'list|10': [{ id: '@id', name: '@cname', age: '@integer(20,60)' }]
+    });
+    ctx.body = { code: 200, data };
+});
+
+// 模拟登录接口（POST）
+router.post('/api/login', (ctx) => {
+    const { username, password } = ctx.request.body;
+    if (username === 'admin' && password === '123456') {
+        ctx.body = { code: 200, token: Mock.mock('@guid') };
+    } else {
+        ctx.body = { code: 401, message: '认证失败' };
+    }
+});
+
+app.use(router.routes());
+app.listen(3000, () => console.log('Mock Server running on port 3000'));

@@ -1,0 +1,16 @@
+{
+  "watch": [   
+    "backend/mock/**/*.js",
+    "backend/mock/**/*.json"
+  ],
+  "ext": "js json",    
+  "ignore": [
+    "node_modules",
+    "src",
+    "dist",
+    "public",
+    "electron",
+    "build",
+    "logs"
+  ]
+}
