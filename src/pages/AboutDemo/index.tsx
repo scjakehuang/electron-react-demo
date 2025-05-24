@@ -32,6 +32,23 @@ const About = () => {
                 }
 
             }}>测试JSON scheme</button>
+            <button onClick={() => {
+                console.log('web socket 测试')
+                const ws = new WebSocket('ws://localhost:4000');
+                console.log(ws)
+                ws.onerror = (e) => {
+                    console.log('连接失败', e)
+                }
+                ws.onopen = () => {
+                    console.log('连接成功');
+                    ws.send('hello world');
+                };
+                // 修正类型错误，WebSocket 的 onmessage 事件处理函数只接受一个 MessageEvent 类型的参数
+                ws.onmessage = (e: MessageEvent<any>) => {
+                    console.log('客户端收到消息', e.data);
+                };
+
+            }}>web socket 测试</button>
         </div>
     )
 }
