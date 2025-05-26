@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
   "appId": "YourAppID",
-  "asar": true,
+  "asar": false,
   "directories": {
     "output": "release/${version}"
   },
@@ -12,7 +12,12 @@
   "extraFiles": [
     {
       "from": "config/apps.json",
-      "to": "resources/config",
+      "to": "resources/config/apps.json",
+      "filter": ["**/*"]
+    },
+    {
+      "from": "electron/server",
+      "to": "resources/server",
       "filter": ["**/*"]
     }
   ],

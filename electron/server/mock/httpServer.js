@@ -2,11 +2,9 @@ import Koa from 'koa'
 import Router from 'koa-router'
 import Mock from 'mockjs'
 import bodyParser from 'koa-bodyparser'
-
-import { createServer } from 'http'
-
 const app = new Koa();
 const router = new Router();
+const PORT = process.env.PORT || 3000;
 
 // 解析请求体（支持 POST）
 app.use(bodyParser());
@@ -31,6 +29,6 @@ router.post('/api/login', (ctx) => {
 });
 
 app.use(router.routes());
-app.listen(3000, () => console.log('Http Server running on port 3000'));
+app.listen(PORT, () => console.log(`Http Server running on port ${PORT},这段文字可以在父进程看到`));
 
 export default app

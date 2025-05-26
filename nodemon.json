@@ -1,7 +1,7 @@
 {
   "watch": [   
-    "backend/mock/**/*.js",
-    "backend/mock/**/*.json"
+    "electron/server/mock/**/*.js",
+    "electron/server/mock/**/*.json"
   ],
   "ext": "js json",    
   "ignore": [
@@ -9,7 +9,6 @@
     "src",
     "dist",
     "public",
-    "electron",
     "build",
     "logs"
   ]

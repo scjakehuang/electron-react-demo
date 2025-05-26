@@ -15,6 +15,8 @@ import { update } from './update'
 import initMainExtend from './mainExtend'
 import logger from '../services/logger'
 import initConfig from './configLoader'
+// 为了解决找不到模块声明文件的问题，使用 `any` 类型显式声明
+import startServer from './startServer';
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -128,7 +130,12 @@ app
   .then(() => {
     initMainExtend()
     logger.info('Electron App is ready')
+  }).then(() => {
+    startServer()
+  }).catch((e) => {
+    logger.error('Electron App is ready error', e)
   })
+  
 
 app.on('window-all-closed', () => {
   win = null

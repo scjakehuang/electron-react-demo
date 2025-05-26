@@ -15,7 +15,7 @@
   "scripts": {
     "commit": "git cz",
     "dev": "vite",
-    "server:mock": "nodemon backend/mock/server.js",
+    "server:mock": "nodemon electron/server/mock/index.js",
     "dev:mock": "concurrently --prefix \"[{name}]\" --names \"frontend,backend\" \"npm run dev\" \"npm run server:mock\"",
     "build": "tsc && vite build && electron-builder",
     "build:win": "tsc && vite build && electron-builder --win --x64",
