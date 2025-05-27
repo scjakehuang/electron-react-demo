@@ -7,4 +7,5 @@ export const IPC_CHANNEL = {
   IPC_LAUNCH_APP: 'ipc-launch-app',
   IPC_GET_APP_PATH: 'ipc-get-app-path',
   IPC_GET_CONFIG: 'ipc-get-config',
+  IPC_USER_CONFIG: 'ipc-user-config',
 }

@@ -39,6 +39,9 @@ contextBridge.exposeInMainWorld('electronApi', {
   },
   getConfig: () => {
     return ipcRenderer.invoke(IPC_CHANNEL.IPC_GET_CONFIG)
+  },
+  userConfig: (...args: any[]) => {
+    return ipcRenderer.invoke(IPC_CHANNEL.IPC_USER_CONFIG, ...args)
   }
 })
 

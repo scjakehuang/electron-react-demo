@@ -3,6 +3,7 @@ import { exec, spawn } from 'child_process'
 import axios from 'axios'
 import { IPC_CHANNEL } from '../enums'
 import { getConfig, getAppPath } from './configLoader'
+import {getUserConfig,setUserConfig} from '../services/auth'
 
 const initMainExtend = () => {
   ipcMain.on('ipc-example', (event, ...args) => {
@@ -108,6 +109,14 @@ const initMainExtend = () => {
         reject(`未找到的配置`)
       }
     })
+  })
+
+  ipcMain.handle(IPC_CHANNEL.IPC_USER_CONFIG, (event, ...data) => {
+    console.log('[Receive Renderer-process message]:', ...data)
+    if (data[0] === 'set') {
+     return setUserConfig(data[1])
+    }
+    return getUserConfig()
   })
 }
 

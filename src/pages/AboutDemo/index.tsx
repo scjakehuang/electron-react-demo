@@ -1,5 +1,6 @@
 // const Ajv2020 = require("ajv/dist/2020")
 import Ajv2020 from "ajv/dist/2020"
+import { randomInt } from "crypto"
 const ajv = new Ajv2020({
     code: {
         source: false
@@ -49,6 +50,26 @@ const About = () => {
                 };
 
             }}>web socket 测试</button>
+            <button onClick={async () => {
+                try {
+                    const result = await window.electronApi.userConfig('get')
+                    console.log('获取config', result)
+                } catch (error) {
+                    console.log(error)
+                }
+            }}>
+                获取User Config
+            </button>
+            <button onClick={async () => {
+                try {
+                    const result = await window.electronApi.userConfig('set', Math.floor(Math.random() *100))
+                    console.log('获取config', result)
+                } catch (error) {
+                    console.log(error)
+                }
+            }}>
+                设置User Config
+            </button>
         </div>
     )
 }

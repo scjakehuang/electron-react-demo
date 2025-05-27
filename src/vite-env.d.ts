@@ -9,5 +9,6 @@ interface Window {
     lauchApp: (appPath: string, args: string[]) => Promise<any>,
     getAppPath: (appName: string) => Promise<any>,
     getConfig: () => Promise<any>,
+    userConfig: (type: string, data?: any) => any
   }
 }
