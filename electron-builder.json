@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
   "appId": "com.yuncheng.ticket",
-  "productName": "TicketSystem",
+  "productName": "云程检票",
   "copyright": "Copyright © 2023 云程科技",
   "asar": true,
   "asarUnpack": ["**/*.node", "electron/server/**"],
