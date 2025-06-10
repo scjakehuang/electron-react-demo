@@ -25,7 +25,16 @@ interface Window {
     checkTicket: (data: any) => Promise<any>;
     onTicketUpdated: (callback: (data: any) => void) => void;
     removeTicketListener: () => void;
-  }
+  };
+  
+  // 添加ipcRenderer接口用于update组件
+  ipcRenderer?: {
+    on: (channel: string, listener: (event: any, ...args: any[]) => void) => void;
+    send: (channel: string, ...args: any[]) => void;
+    invoke: (channel: string, ...args: any[]) => Promise<any>;
+    off: (channel: string, listener: (event: any, ...args: any[]) => void) => void;
+    removeAllListeners: (channel: string) => void;
+  };
   
   // 确保TypeScript认识SpeechSynthesis API
   speechSynthesis: SpeechSynthesis;

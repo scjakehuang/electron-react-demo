@@ -32,14 +32,14 @@ try {
       }
     },
     
-    // 添加检票方法
-    checkTicket: (ticketData) => {
+    // 添加检票方法 - 添加类型注解
+    checkTicket: (ticketData: any) => {
       console.log('[Preload] window.electronApi.checkTicket called with:', ticketData);
       return ipcRenderer.invoke('check-ticket', ticketData);
     },
 
-    // 添加监听检票更新事件的方法
-    onTicketUpdated: (callback) => {
+    // 添加监听检票更新事件的方法 - 添加类型注解
+    onTicketUpdated: (callback: (data: any) => void) => {
       console.log('[Preload] 注册检票更新监听器');
       // 移除之前的监听器以避免重复
       ipcRenderer.removeAllListeners('ticket-updated');
