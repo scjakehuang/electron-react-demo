@@ -1,176 +1,96 @@
-import {
-  app,
-  BrowserWindow,
-  shell,
-  ipcMain,
-  screen,
-  WebContentsView
-} from 'electron'
-import { createRequire } from 'node:module'
-import { fileURLToPath } from 'node:url'
+import { app, BrowserWindow } from 'electron'
 import path from 'node:path'
-import os from 'node:os'
-import { update } from './update'
-// 扩展主进程
-import initMainExtend from './mainExtend'
-import logger from '../services/logger'
-import initConfig from './configLoader'
-// 为了解决找不到模块声明文件的问题，使用 `any` 类型显式声明
-import startServer from './startServer';
+// 暂时注释掉API服务，排除其可能导致的崩溃
+// import { startApiServer } from '../server/api'
 
-const require = createRequire(import.meta.url)
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-
-// The built directory structure
-//
-// ├─┬ dist-electron
-// │ ├─┬ main
-// │ │ └── index.js    > Electron-Main
-// │ └─┬ preload
-// │   └── index.mjs   > Preload-Scripts
-// ├─┬ dist
-// │ └── index.html    > Electron-Renderer
-//
-process.env.APP_ROOT = path.join(__dirname, '../..')
-
-export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
-export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
-export const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
-
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
-  ? path.join(process.env.APP_ROOT, 'public')
-  : RENDERER_DIST
-
-// Disable GPU Acceleration for Windows 7
-if (os.release().startsWith('6.1')) app.disableHardwareAcceleration()
-
-// Set application name for Windows 10+ notifications
-if (process.platform === 'win32') app.setAppUserModelId(app.getName())
-
-if (!app.requestSingleInstanceLock()) {
-  app.quit()
-  process.exit(0)
+// 简单的控制台日志辅助函数
+const log = (message: string) => {
+  console.log(`[${new Date().toISOString()}] ${message}`)
 }
+
+// 程序启动时记录日志
+log('应用程序启动')
 
 let win: BrowserWindow | null = null
-const preload = path.join(__dirname, '../preload/index.mjs')
-const indexHtml = path.join(RENDERER_DIST, 'index.html')
+// __dirname in CJS (after Vite build) will be dist-electron/main/
+const preloadScriptPath = path.join(__dirname, '../preload/index.js')
+const indexHtml = path.join(__dirname, '../../dist/index.html')
 
-async function createWindow () {
-  const primaryDisplay = screen.getPrimaryDisplay()
-  const { width, height } = primaryDisplay.workAreaSize
+// 暂时注释掉API服务启动
+// startApiServer()
 
-  // Create the browser window.
-  win = new BrowserWindow({
-    width: Math.floor(width * 0.9),
-    height: Math.floor(height * 0.9),
-    title: 'Main window',
-    icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
-    // frame: false,
-    autoHideMenuBar: true,
-    // resizable: false,
-    // center: true,
-    // show: false,
-    backgroundColor: 'red',
-    webPreferences: {
-      preload,
-      // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
-      // nodeIntegration: true,
-      // webSecurity: true,
-      webSecurity: false,
-      // Consider using contextBridge.exposeInMainWorld
-      // Read more on https://www.electronjs.org/docs/latest/tutorial/context-isolation
-      // contextIsolation: false,
-    }
-  })
-  // 创建子窗口
-  // const view1 = new WebContentsView()
-  // win.contentView.addChildView(view1)
-  // view1.webContents.loadURL('https://www.baidu.com')
-  // view1.setBounds({ x: 0, y: 0, width: 400, height: 400 })
+// 简单版本的IPC处理，避免可能的错误
+// ipcMain.handle('get-config', () => {...})
 
-  if (VITE_DEV_SERVER_URL) {
-    // #298
-    win.loadURL(VITE_DEV_SERVER_URL)
-    // Open devTool if the app is not packaged
+function createWindow() {
+  try {
+    log('开始创建窗口')
+    
+    // 使用最简单的窗口配置
+    win = new BrowserWindow({
+      width: 1200,
+      height: 800,
+      show: true, // 直接显示窗口
+      webPreferences: {
+        // 暂时禁用preload，排除它可能导致的问题
+        // preload: preloadScriptPath,
+        nodeIntegration: true,
+        contextIsolation: false,
+      },
+    })
+    
+    log('窗口已创建')
+
+    // 开发模式直接显示开发者工具
     win.webContents.openDevTools()
-  } else {
-    win.loadFile(indexHtml)
+    
+    // 显示状态日志
+    win.on('show', () => log('窗口已显示'))
+    win.on('hide', () => log('窗口已隐藏'))
+    win.on('close', () => log('窗口关闭中'))
+
+    // 简化内容加载逻辑
+    const devServerUrl = process.env.VITE_DEV_SERVER_URL
+    log(`开发服务器URL: ${devServerUrl || '未设置'}`)
+    
+    if (devServerUrl) {
+      log(`尝试加载: ${devServerUrl}`)
+      win.loadURL(devServerUrl)
+        .then(() => log('URL加载成功'))
+        .catch(err => log(`URL加载失败: ${err}`))
+    } else {
+      log(`尝试加载文件: ${indexHtml}`)
+      win.loadFile(indexHtml)
+        .then(() => log('文件加载成功'))
+        .catch(err => log(`文件加载失败: ${err}`))
+    }
+
+    win.on('closed', () => {
+      win = null
+      log('窗口已关闭')
+    })
+
+  } catch (err) {
+    log(`窗口创建失败: ${err}`)
+    // 记录详细的错误堆栈
+    if (err instanceof Error) {
+      log(`错误堆栈: ${err.stack}`)
+    }
   }
-
-  // Test actively push message to the Electron-Renderer
-  win.webContents.on('did-finish-load', () => {
-    const userData = app.getPath("userData");
-    win?.webContents.send('main-process-message', new Date().toLocaleString(), userData)
-    // win?.webContents.send('ipc-demo', 'Hello from main process')
-  })
-
-  // Make all links open with the browser, not with the application
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('https:')) shell.openExternal(url)
-    return { action: 'deny' }
-  })
-
-  win.on('resized', (...args) => {
-    // console.log('Window resized',args)
-    // const rect = win.getBounds()
-    // console.log('Window bounds:', rect,e)
-  })
-
-  // Auto update
-  update(win)
 }
 
-app
-  .whenReady()
-  .then(createWindow)
-  .then(() => {
-    initConfig()
-  })
-  .then(() => {
-    initMainExtend()
-    logger.info('Electron App is ready')
-  }).then(() => {
-    startServer()
-  }).catch((e) => {
-    logger.error('Electron App is ready error', e)
-  })
-  
+// 确保任何未捕获的异常都被记录下来
+process.on('uncaughtException', (error) => {
+  log(`未捕获的异常: ${error}`)
+  if (error.stack) log(`堆栈: ${error.stack}`)
+})
+
+app.whenReady().then(() => {
+  log('应用程序ready事件触发')
+  createWindow()
+})
 
 app.on('window-all-closed', () => {
-  win = null
-  if (process.platform !== 'darwin') app.quit()
-})
-
-app.on('second-instance', () => {
-  if (win) {
-    // Focus on the main window if the user tried to open another
-    if (win.isMinimized()) win.restore()
-    win.focus()
-  }
-})
-
-app.on('activate', () => {
-  const allWindows = BrowserWindow.getAllWindows()
-  if (allWindows.length) {
-    allWindows[0].focus()
-  } else {
-    createWindow()
-  }
-})
-
-// New window example arg: new windows url
-ipcMain.handle('open-win', (_, arg) => {
-  const childWindow = new BrowserWindow({
-    webPreferences: {
-      preload,
-      nodeIntegration: true,
-      contextIsolation: false
-    }
-  })
-  if (VITE_DEV_SERVER_URL) {
-    childWindow.loadURL(`${VITE_DEV_SERVER_URL}#${arg}`)
-  } else {
-    childWindow.loadFile(indexHtml, { hash: arg })
-  }
+  log('所有窗口已关闭')
+  app.quit() // 始终退出应用以简化调试
 })
