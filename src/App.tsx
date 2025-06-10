@@ -91,6 +91,7 @@ const App: React.FC = () => {
     if ('speechSynthesis' in window) {
       console.log('语音合成API可用');
 
+
       // 获取可用的语音列表
       const getVoices = () => {
         const voices = window.speechSynthesis.getVoices();
