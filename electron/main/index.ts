@@ -1,7 +1,7 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'node:path'
-// 暂时注释掉API服务，排除其可能导致的崩溃
-// import { startApiServer } from '../server/api'
+import { startApiServer, setTicketUpdateCallback } from '../server/api'
+import http from 'http'
 
 // 简单的控制台日志辅助函数
 const log = (message: string) => {
@@ -16,11 +16,87 @@ let win: BrowserWindow | null = null
 const preloadScriptPath = path.join(__dirname, '../preload/index.js')
 const indexHtml = path.join(__dirname, '../../dist/index.html')
 
-// 暂时注释掉API服务启动
-// startApiServer()
+// 启动 API 服务
+log('正在启动 API 服务...')
+startApiServer()
+log('API 服务启动完成')
 
-// 简单版本的IPC处理，避免可能的错误
-// ipcMain.handle('get-config', () => {...})
+// 设置检票更新回调函数，当API服务收到检票请求时通知主进程
+setTicketUpdateCallback((ticketData) => {
+  log(`收到API服务检票更新通知: ${JSON.stringify(ticketData)}`)
+  // 如果窗口存在，则向渲染进程发送检票数据
+  if (win && !win.isDestroyed()) {
+    win.webContents.send('ticket-updated', ticketData)
+    log('已向渲染进程发送检票更新事件')
+  }
+})
+
+// 添加 IPC 处理器用于获取配置
+ipcMain.handle('get-config', async () => {
+  log('IPC: get-config 被调用')
+  return {
+    cmd: 82,
+    personnum: 1,
+    line1: '欢迎光临',
+    line2: '云程票务',
+    line3: '请通行',
+    line4: '祝您游玩愉快',
+    line5: '',
+    voice: '欢���光临',
+    filename: 'welcome.jpg',
+    showcount: 1,
+    title: '今日入场',
+    entrycount: 0
+  }
+})
+
+// 添加 IPC 处理器用于检票
+ipcMain.handle('check-ticket', async (_, ticketData) => {
+  log(`IPC: check-ticket 被调用，数据: ${JSON.stringify(ticketData)}`)
+  
+  // 向本地 API 服务器发送请求
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify(ticketData)
+    
+    const options = {
+      hostname: '127.0.0.1',
+      port: 3001,
+      path: '/api/check-ticket',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      }
+    }
+    
+    const req = http.request(options, (res) => {
+      let data = ''
+      
+      res.on('data', (chunk) => {
+        data += chunk
+      })
+      
+      res.on('end', () => {
+        try {
+          const result = JSON.parse(data)
+          log(`API响应: ${JSON.stringify(result)}`)
+          resolve(result)
+        } catch (error) {
+          log(`解析API响应失败: ${error}`)
+          reject(error)
+        }
+      })
+    })
+    
+    req.on('error', (error) => {
+      log(`API请求失败: ${error}`)
+      reject(error)
+    })
+    
+    req.write(postData)
+    req.end()
+  })
+})
 
 function createWindow() {
   try {
@@ -32,12 +108,26 @@ function createWindow() {
       height: 800,
       show: true, // 直接显示窗口
       webPreferences: {
-        // 暂时禁用preload，排除它可能导致的问题
-        // preload: preloadScriptPath,
-        nodeIntegration: true,
-        contextIsolation: false,
+        // 启用preload脚本
+        preload: preloadScriptPath,
+        nodeIntegration: false,
+        contextIsolation: true,
+        // 添加对音频的支持
+        webSecurity: false, // 允许加载本地资源
+        allowRunningInsecureContent: true, // 允许运行不安全内容
       },
     })
+    
+    // 音频权限
+    win.webContents.session.setPermissionRequestHandler(
+      (webContents, permission, callback) => {
+        if (permission === 'media') {
+          log('授予媒体权限');
+          return callback(true);
+        }
+        callback(true);
+      }
+    );
     
     log('窗口已创建')
 

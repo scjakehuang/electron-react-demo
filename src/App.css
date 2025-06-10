@@ -102,6 +102,36 @@
   font-weight: bold;
 }
 
+/* 检票按钮样式 */
+.check-button {
+  background-color: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  margin-top: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.check-button:hover {
+  background-color: #40a9ff;
+}
+
+.check-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* 最后更新时间样式 */
+.last-updated {
+  color: #666;
+  font-size: 0.8rem;
+  margin-top: 10px;
+  font-style: italic;
+}
+
 /* 页脚样式 */
 .footer {
   text-align: center;
