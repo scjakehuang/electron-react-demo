@@ -16,21 +16,6 @@ let win: BrowserWindow | null = null
 const preloadScriptPath = path.join(__dirname, '../preload/index.js')
 const indexHtml = path.join(__dirname, '../../dist/index.html')
 
-// 启动 API 服务
-log('正在启动 API 服务...')
-startApiServer()
-log('API 服务启动完成')
-
-// 设置检票更新回调函数，当API服务收到检票请求时通知主进程
-setTicketUpdateCallback((ticketData) => {
-  log(`收到API服务检票更新通知: ${JSON.stringify(ticketData)}`)
-  // 如果窗口存在，则向渲染进程发送检票数据
-  if (win && !win.isDestroyed()) {
-    win.webContents.send('ticket-updated', ticketData)
-    log('已向渲染进程发送检票更新事件')
-  }
-})
-
 // 添加 IPC 处理器用于获取配置
 ipcMain.handle('get-config', async () => {
   log('IPC: get-config 被调用')
@@ -42,7 +27,7 @@ ipcMain.handle('get-config', async () => {
     line3: '请通行',
     line4: '祝您游玩愉快',
     line5: '',
-    voice: '欢���光临',
+    voice: '请进',
     filename: 'welcome.jpg',
     showcount: 1,
     title: '今日入场',
@@ -176,7 +161,23 @@ process.on('uncaughtException', (error) => {
 })
 
 app.whenReady().then(() => {
-  log('应用程序ready事件触发')
+  log('应用程序 ready 事件触发')
+
+  // 启动 API 服务
+  log('正在启动 API 服务...')
+  startApiServer()
+  log('API 服务启动完成')
+
+  // 设置检票更新回调
+  setTicketUpdateCallback((ticketData) => {
+    log(`收到API服务检票更新通知: ${JSON.stringify(ticketData)}`)
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('ticket-updated', ticketData)
+      log('已向渲染进程发送检票更新事件')
+    }
+  })
+
+  // 创建并显示窗口
   createWindow()
 })
 
