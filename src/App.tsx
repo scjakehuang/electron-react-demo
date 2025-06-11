@@ -65,7 +65,7 @@ const App: React.FC = () => {
     title: '统计信息',
     entrycount: 0
   });
-  
+
   const [error, setError] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
   const lastVoiceRef = useRef<string>('');
@@ -89,7 +89,7 @@ const App: React.FC = () => {
           if (voices.length === 0) {
             console.warn("[App.tsx] No voices found after onvoiceschanged. Speech synthesis will use fallback or fail if no fallback.");
             // If no voices are found, we consider speech synthesis not fully supported for speaking.
-            setAudioSupported(false); 
+            setAudioSupported(false);
           } else {
             // Voices found, mark as supported. The speak function will pick one.
             setAudioSupported(true);
@@ -122,7 +122,7 @@ const App: React.FC = () => {
       console.warn('[App.tsx] SpeechSynthesis API not fully supported.');
       setAudioSupported(false);
     }
-    
+
     return () => {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.onvoiceschanged = null;
@@ -141,7 +141,7 @@ const App: React.FC = () => {
       processVoiceQueue();
     }
   };
-  
+
   const processVoiceQueue = () => {
     console.log(`[App.tsx] processVoiceQueue called. Queue length: ${voiceQueueRef.current.length}, isProcessing: ${isProcessingQueueRef.current}`);
     if (voiceQueueRef.current.length === 0) {
@@ -149,7 +149,7 @@ const App: React.FC = () => {
       console.log('[App.tsx] Voice queue empty, stopping processing.');
       return;
     }
-    
+
     // Ensure only one processing "thread"
     if (isProcessingQueueRef.current && voiceQueueRef.current.length > 0) {
         // This case should ideally not be hit if logic is correct,
@@ -159,7 +159,7 @@ const App: React.FC = () => {
     isProcessingQueueRef.current = true;
     const text = voiceQueueRef.current.shift()!;
     console.log(`[App.tsx] Processing voice from queue: "${text}"`);
-    
+
     // This check was problematic and removed in previous steps, ensure it's not re-introduced.
     // if (text === lastVoiceRef.current && isSpeaking) { ... }
 
@@ -167,7 +167,7 @@ const App: React.FC = () => {
       if (audioSupported && availableVoices.length > 0 && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined') {
         console.log('[App.tsx] Using SpeechSynthesis API to speak:', text);
         window.speechSynthesis.cancel();
-        
+
         const utterance = new SpeechSynthesisUtterance(text);
         const chineseVoice = availableVoices.find(voice => voice.lang.toLowerCase().startsWith('zh') || voice.name.toLowerCase().includes('chinese') || voice.name.toLowerCase().includes('中文'));
         if (chineseVoice) {
@@ -180,19 +180,19 @@ const App: React.FC = () => {
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
-        
+
         utterance.onstart = () => {
           console.log('[App.tsx] Speech started:', text);
           setIsSpeaking(true);
           lastVoiceRef.current = text;
         };
-        
+
         utterance.onend = () => {
           console.log('[App.tsx] Speech ended:', text);
           setIsSpeaking(false);
           setTimeout(processVoiceQueue, 100);
         };
-        
+
         utterance.onerror = (event) => {
           if (event.error !== 'canceled') {
             console.error('[App.tsx] SpeechSynthesisUtterance error:', event.error, event);
@@ -200,7 +200,7 @@ const App: React.FC = () => {
           setIsSpeaking(false);
           setTimeout(processVoiceQueue, 100);
         };
-        
+
         window.speechSynthesis.speak(utterance);
       } else if (audioRef.current) {
         console.warn(`[App.tsx] SpeechSynthesis not usable (audioSupported: ${audioSupported}, availableVoices: ${availableVoices.length}). Attempting fallback audio for: "${text}"`);
@@ -212,7 +212,7 @@ const App: React.FC = () => {
         } else {
           audioSrc = '/audio/notify.mp3';
         }
-        
+
         console.log('[App.tsx] Setting fallback audio src to:', audioSrc);
         audioRef.current.src = audioSrc;
 
@@ -234,7 +234,7 @@ const App: React.FC = () => {
           setIsSpeaking(false);
           setTimeout(processVoiceQueue, 100);
         };
-        
+
         try {
           console.log('[App.tsx] Attempting to call audioRef.current.play() for src:', audioSrc);
           const playPromise = audioRef.current.play();
@@ -283,7 +283,7 @@ const App: React.FC = () => {
         try {
           const data = await window.electronApi.getConfig();
           console.log('[App.tsx] getConfig returned:', data);
-          if (data) { 
+          if (data) {
             setTicketData(prev => ({ ...prev, ...data, line2: data.line2 || data.ticketName || '票务系统' }));
           } else {
             console.warn('[App.tsx] getConfig returned null or undefined data.');
@@ -307,7 +307,7 @@ const App: React.FC = () => {
       try {
          removeUpdateListener = window.electronApi.onTicketUpdated((newData) => {
           console.log('[App.tsx] Received ticket update via onTicketUpdated:', newData);
-          if (newData) { 
+          if (newData) {
             setTicketData(prev => ({ ...prev, ...newData }));
             if (newData.voice) {
               speakText(newData.voice);
@@ -327,7 +327,7 @@ const App: React.FC = () => {
     } else {
       console.error('[App.tsx] window.electronApi.onTicketUpdated is not available.');
     }
-    
+
     return () => {
       console.log('[App.tsx] useEffect cleanup running for data fetch and listeners.');
       if (removeUpdateListener && typeof removeUpdateListener === 'function') {
@@ -342,8 +342,8 @@ const App: React.FC = () => {
         window.speechSynthesis.cancel();
       }
     };
-  }, []); 
-  
+  }, []);
+
   useEffect(() => {
     // This effect triggers when ticketData.voice changes.
     // The speakText function itself contains the logic to queue and then
@@ -357,9 +357,9 @@ const App: React.FC = () => {
   return (
     <div className="container">
       <audio ref={audioRef} style={{ display: 'none' }} />
-      
-      <h1 className="title">欢迎光临!</h1>
-      {error && <p style={{ color: 'red' }}>错误: {error}</p>}
+
+      <h1 className="title">欢迎光临</h1>
+{/*      {error && <p style={{ color: 'red' }}>错误: {error}</p>}*/}
       <div className="card">
         <div className="left-section">
           <div className="logo-and-datetime-wrapper"> {/* New wrapper div */}
@@ -375,22 +375,30 @@ const App: React.FC = () => {
             }).replace(/\//g, '年').replace(/\//g, '月').replace(/\s/, '日 ')}</p>
           </div>
           <div className="info">
-            {/* Date-time paragraph moved into the wrapper above */}
-            <h2 className="ticket-type">{ticketData.line1}</h2>
-            <p className="success-message">
-              {ticketData.cmd === 83 ? `检票成功 (${ticketData.line3})` : `无效票 (${ticketData.line3})`}：
-              <span className="success-count">{ticketData.personnum}</span>
-            </p>
+            {ticketData.cmd === 83 ? (
+              <>
+                <p className="success-message" style={{ color: '#28a745' }}>
+                  请进
+                </p>
+                <h2 className="ticket-type">{ticketData.line1}</h2>
+                <span className="success-count">{ticketData.personnum}</span>
+              </>
+            ) : (
+              <p className="success-message" style={{ color: '#dc3545' }}>
+                无效票
+              </p>
+            )}
           </div>
         </div>
         <div className="right-section">
           <h3 className="gate">{ticketData.line5 || '闸机口'}</h3>
           <p className="machine-info">
-            {ticketData.title || '本站'}: <span className="count">{ticketData.showcount}</span>
-          </p>
-          <p className="station-info">
             本机: <span className="count">{ticketData.entrycount}</span>
           </p>
+          <p className="station-info">
+            本站: <span className="count">{ticketData.showcount}</span>
+          </p>
+
         </div>
       </div>
       <footer className="footer">云程票务</footer>
