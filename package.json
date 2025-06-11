@@ -25,9 +25,9 @@
   },
   "dependencies": {
     "electron-updater": "^4.6.5",
-    "koa": "^3.0.0",
-    "koa-bodyparser": "^4.4.1",
-    "koa-router": "^13.0.1"
+    "koa": "^2.13.4",
+    "koa-bodyparser": "^4.3.0",
+    "koa-router": "^10.1.1"
   },
   "devDependencies": {
     "crypto-browserify": "^3.12.1",

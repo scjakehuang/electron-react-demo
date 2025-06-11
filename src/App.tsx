@@ -143,21 +143,27 @@ const App: React.FC = () => {
   };
   
   const processVoiceQueue = () => {
+    console.log(`[App.tsx] processVoiceQueue called. Queue length: ${voiceQueueRef.current.length}, isProcessing: ${isProcessingQueueRef.current}`);
     if (voiceQueueRef.current.length === 0) {
       isProcessingQueueRef.current = false;
+      console.log('[App.tsx] Voice queue empty, stopping processing.');
       return;
     }
     
+    // Ensure only one processing "thread"
+    if (isProcessingQueueRef.current && voiceQueueRef.current.length > 0) {
+        // This case should ideally not be hit if logic is correct,
+        // but as a safeguard if speakText calls processVoiceQueue while it's already running.
+        // However, speakText checks isProcessingQueueRef.current before calling.
+    }
     isProcessingQueueRef.current = true;
     const text = voiceQueueRef.current.shift()!;
+    console.log(`[App.tsx] Processing voice from queue: "${text}"`);
     
-    if (text === lastVoiceRef.current && isSpeaking) {
-      setTimeout(processVoiceQueue, 50);
-      return;
-    }
+    // This check was problematic and removed in previous steps, ensure it's not re-introduced.
+    // if (text === lastVoiceRef.current && isSpeaking) { ... }
 
     try {
-      // Only attempt SpeechSynthesis if API is supported AND voices are available
       if (audioSupported && availableVoices.length > 0 && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined') {
         console.log('[App.tsx] Using SpeechSynthesis API to speak:', text);
         window.speechSynthesis.cancel();
@@ -170,7 +176,7 @@ const App: React.FC = () => {
         } else {
           console.log('[App.tsx] No specific Chinese voice found, using default system voice (if any).');
         }
-        utterance.lang = 'zh-CN'; // Explicitly set lang for the utterance
+        utterance.lang = 'zh-CN';
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
@@ -192,57 +198,79 @@ const App: React.FC = () => {
             console.error('[App.tsx] SpeechSynthesisUtterance error:', event.error, event);
           }
           setIsSpeaking(false);
-          // If speaking fails, consider it unsupported for future attempts in this session
-          // setAudioSupported(false); // This might be too aggressive, could be a one-off error
           setTimeout(processVoiceQueue, 100);
         };
         
         window.speechSynthesis.speak(utterance);
-      } else if (audioRef.current) { // Fallback to <audio> element
-        console.warn(`[App.tsx] SpeechSynthesis not usable (audioSupported: ${audioSupported}, availableVoices: ${availableVoices.length}). Attempting fallback audio for:`, text);
+      } else if (audioRef.current) {
+        console.warn(`[App.tsx] SpeechSynthesis not usable (audioSupported: ${audioSupported}, availableVoices: ${availableVoices.length}). Attempting fallback audio for: "${text}"`);
         let audioSrc = '';
         if (text.includes('成功') || text.includes('请进') || text.includes('欢迎')) {
-          audioSrc = '/audio/success.mp3'; // Corrected path
+          audioSrc = '/audio/success.mp3';
         } else if (text.includes('无效') || text.includes('错误')) {
-          audioSrc = '/audio/error.mp3'; // Corrected path
+          audioSrc = '/audio/error.mp3';
         } else {
-          audioSrc = '/audio/notify.mp3'; // Corrected path
+          audioSrc = '/audio/notify.mp3';
         }
         
         console.log('[App.tsx] Setting fallback audio src to:', audioSrc);
         audioRef.current.src = audioSrc;
+
+        // Reset and attach event handlers each time src changes
         audioRef.current.onplay = () => {
             console.log('[App.tsx] Fallback audio started playing:', audioSrc);
             setIsSpeaking(true);
-        }
+            lastVoiceRef.current = text; // Update lastRef here as well
+        };
         audioRef.current.onended = () => {
           console.log('[App.tsx] Fallback audio ended:', audioSrc);
           setIsSpeaking(false);
           setTimeout(processVoiceQueue, 100);
         };
         audioRef.current.onerror = (e) => {
-          console.error('[App.tsx] Fallback audio error for src:', audioSrc, e);
+          // Log the error object itself for more details
+          const errorEvent = e as Event & { target?: { error?: MediaError | null } };
+          console.error('[App.tsx] Fallback audio error for src:', audioSrc, 'Error object:', errorEvent, 'MediaError:', errorEvent.target?.error);
           setIsSpeaking(false);
           setTimeout(processVoiceQueue, 100);
         };
-        const playPromise = audioRef.current.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(error => {
-            console.error('[App.tsx] Fallback audio play() promise rejected for src:', audioSrc, error);
-            setIsSpeaking(false);
-            setTimeout(processVoiceQueue, 100);
-          });
-        } else {
-            console.warn('[App.tsx] Fallback audio play() did not return a promise.');
+        
+        try {
+          console.log('[App.tsx] Attempting to call audioRef.current.play() for src:', audioSrc);
+          const playPromise = audioRef.current.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                console.log('[App.tsx] Fallback audio play() promise resolved (playback likely started for src):', audioSrc);
+                // onplay event should handle setIsSpeaking(true)
+              })
+              .catch(error => {
+                console.error('[App.tsx] Fallback audio play() promise rejected for src:', audioSrc, error);
+                setIsSpeaking(false);
+                setTimeout(processVoiceQueue, 100); // Ensure queue continues
+              });
+          } else {
+              console.warn('[App.tsx] Fallback audio play() did not return a promise. Relying on events.');
+              // If no promise, onended/onerror should still fire. If not, queue might stall.
+              // For safety, if it's an old browser that doesn't return promise and doesn't fire events reliably,
+              // we might need a timeout here, but that's less likely in Electron 19.
+          }
+        } catch (playError) {
+          console.error('[App.tsx] Error directly calling audioRef.current.play() for src:', audioSrc, playError);
+          setIsSpeaking(false);
+          setTimeout(processVoiceQueue, 100); // Ensure queue continues
         }
       } else {
         console.error('[App.tsx] No speech synthesis (or no voices/support) and no fallback audio element. Cannot play:', text);
-        setIsSpeaking(false);
-        setTimeout(processVoiceQueue, 100);
+        setIsSpeaking(false); // Ensure speaking state is reset
+        setTimeout(processVoiceQueue, 100); // Continue queue processing
       }
     } catch (error) {
-      console.error('[App.tsx] Error in processVoiceQueue:', error);
-      setIsSpeaking(false);
+      console.error('[App.tsx] Uncaught error in processVoiceQueue main logic for text:', `"${text}"`, error);
+      setIsSpeaking(false); // Reset speaking state
+      isProcessingQueueRef.current = false; // Attempt to reset queue processing flag
+      // Decide if we should attempt to process next item or stop.
+      // For now, let's try to continue the queue after a delay.
       setTimeout(processVoiceQueue, 100);
     }
   };
