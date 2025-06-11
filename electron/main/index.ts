@@ -104,8 +104,8 @@ function createWindow() {
   console.log('Attempting to create main window...');
   try {
     win = new BrowserWindow({
-      width: 900,
-      height: 640,
+      width: 1346,
+      height: 960,
       show: false, // Use 'ready-to-show' event
       webPreferences: {
         preload: preloadScriptPath,

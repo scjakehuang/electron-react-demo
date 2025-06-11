@@ -33,21 +33,39 @@
 }
 
 .left-section, .right-section {
-  padding: 25px;
-  flex: 1;
+  /*padding: 25px;*/
+  /* flex: 1; */ /* 移除旧的 flex: 1 */
 }
 
 .left-section {
+  /* flex: 1; */ /* 移除旧的 flex: 1 */
+  flex-basis: 66.66%; /* 左边占三分之二 */
+  padding: 20px;
+  display: flex;
+  flex-direction: column; /* Keep overall left-section as column */
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
   border-right: 1px solid #eee;
 }
 
-/* 保留原有动画效果 */
+.logo-and-datetime-wrapper {
+  display: flex; /* Arrange logo and datetime side-by-side */
+  align-items: center; /* Vertically align items in the middle */
+  width: 100%; /* Take full width of its container if needed */
+  justify-content: center; /* Center the group if it doesn't take full width */
+  margin-bottom: 15px; /* Add some space below this group */
+}
+
 .logo {
-  width: 80px;
-  height: 80px;
-  margin-bottom: 15px;
-  will-change: filter;
-  transition: filter 300ms;
+  width: 80px; /* Adjust as needed */
+  height: auto;
+  margin-right: 15px; /* Space between logo and date-time */
+  flex-shrink: 0;
+  fill: #005E25;
+
 }
 
 .logo:hover {
@@ -56,21 +74,37 @@
 
 /* 信息区域样式 */
 .date-time {
-  color: #666;
-  font-size: 0.9rem;
-  margin-bottom: 10px;
+  /*color: #666;*/
+  /*font-size: 0.9rem;*/
+  /*margin-bottom: 10px;*/
+
+  color: #333333;
+  font-family: "PingFang SC";
+  font-size: 30px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: normal;
+}
+
+.info {
+  /* text-align: center; */ /* Already centered by left-section */
+  /* margin-top: 15px; */ /* Spacing now handled by wrapper's margin-bottom */
+  width: 100%; /* Ensure info section takes width for its text centering */
+
 }
 
 .ticket-type {
-  color: #d4af37;
   font-size: 1.8rem;
-  margin: 15px 0;
+  color: #333;
+  margin-top: 0; /* Adjust if needed after layout change */
+  margin-bottom: 10px;
+  font-weight: bold;
 }
 
 .success-message {
   font-size: 1.2rem;
-  color: #ff0000;
-  margin: 20px 0;
+  color: #4CAF50;
+  margin-bottom: 10px;
 }
 
 .success-count {
@@ -86,6 +120,11 @@
 }
 
 /* 右侧区域样式 */
+.right-section {
+  flex-basis: 33.33%; /* 右边占三分之一 */
+  background: #6a6a6a1a; /* 添加背景色 */
+}
+
 .gate {
   font-size: 1.5rem;
   color: #333;

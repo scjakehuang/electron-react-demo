@@ -20,7 +20,7 @@ interface TicketData {
   /** 第四行显示内容 (仅安卓闸机有效) */
   line4: string;
 
-  /** 第五行显示内容 (仅安卓闸机有效)  闸机设备名称 */
+  /** 第五行显示内容 (仅安卓闸机有效)  闸机通道名称 */
   line5: string;
 
   /** 语音提示文件路径/内容 */
@@ -362,8 +362,8 @@ const App: React.FC = () => {
       {error && <p style={{ color: 'red' }}>错误: {error}</p>}
       <div className="card">
         <div className="left-section">
-          <img src="/public/logo.png" alt="Logo" className="logo" />
-          <div className="info">
+          <div className="logo-and-datetime-wrapper"> {/* New wrapper div */}
+            <img src="/public/Group 1321318654@2x.png" alt="Logo" className="logo" />
             <p className="date-time">{new Date().toLocaleString('zh-CN', {
               year: 'numeric',
               month: '2-digit',
@@ -373,6 +373,9 @@ const App: React.FC = () => {
               second: '2-digit',
               hour12: false
             }).replace(/\//g, '年').replace(/\//g, '月').replace(/\s/, '日 ')}</p>
+          </div>
+          <div className="info">
+            {/* Date-time paragraph moved into the wrapper above */}
             <h2 className="ticket-type">{ticketData.line1}</h2>
             <p className="success-message">
               {ticketData.cmd === 83 ? `检票成功 (${ticketData.line3})` : `无效票 (${ticketData.line3})`}：
