@@ -2,7 +2,7 @@
   "name": "yuncheng-ticket",
   "version": "1.0.0",
   "main": "dist-electron/main/index.js",
-  "description": "云程票务系统 - 基于Electron和React的票务管理应用",
+  "description": "云程票务系统 - 基于Electron和React的票务检票应用",
   "author": "jiakai.huang",
   "license": "MIT",
   "private": true,
@@ -74,7 +74,7 @@
   },
   "build": {
     "appId": "com.yuncheng.ticket",
-    "productName": "云程票务系统",
+    "productName": "云程检票",
     "asar": true,
     "directories": {
       "output": "release/${version}",

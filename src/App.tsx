@@ -49,6 +49,10 @@ interface TicketData {
 
 console.log('[App.tsx] Script start. window.electronApi available:', !!window.electronApi);
 
+// Note: For macOS builds (DMG), ensure Xcode Command Line Tools are installed
+// if errors related to Python (e.g., "spawn /usr/bin/python ENOENT") occur.
+// This can be done by running `xcode-select --install` in the terminal.
+
 const App: React.FC = () => {
   console.log('[App.tsx] App component rendering/re-rendering.');
   const [ticketData, setTicketData] = useState<TicketData>({
@@ -296,12 +300,12 @@ const App: React.FC = () => {
             const originalOnPlay = audioElement.onplay;
             audioElement.onplay = () => {
                 clearTimeout(failsafeTimeout);
-                if(originalOnPlay) originalOnPlay.call(audioElement);
+                if(originalOnPlay) originalOnPlay.call(audioElement, undefined as any);
             };
             const originalOnEnded = audioElement.onended;
             audioElement.onended = () => {
                 clearTimeout(failsafeTimeout);
-                if(originalOnEnded) originalOnEnded.call(audioElement);
+                if(originalOnEnded) originalOnEnded.call(audioElement, undefined as any);
             };
              const originalOnError = audioElement.onerror;
             audioElement.onerror = (e) => {
