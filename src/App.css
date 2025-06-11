@@ -70,7 +70,8 @@ body {
 .logo-and-datetime-wrapper {
   display: flex;
   align-items: center;
-  margin-bottom: 2rem;
+  /* margin-bottom: 2rem; */ /* 原来的 margin-bottom */
+  margin-bottom: calc(2rem - 20px); /* 减少 margin-bottom 以使 .info 内容上移 */
 
   color: #333333;
   font-family: "PingFang SC";
@@ -114,6 +115,7 @@ body {
   font-weight: 600;
   line-height: normal;
   text-align: center; /* 添加文字居中 */
+  margin-bottom: 20px;
 }
 
 .success-count {
