@@ -72,21 +72,190 @@ const App: React.FC = () => {
   const voiceQueueRef = useRef<string[]>([]);
   const isProcessingQueueRef = useRef<boolean>(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [audioSupported, setAudioSupported] = useState<boolean>(true); // Assume supported initially
+  const [audioSupported, setAudioSupported] = useState<boolean>(true); // Represents if SpeechSynthesis API is generally usable
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
 
-  // Simplified initial useEffect for logging
   useEffect(() => {
-    console.log('[App.tsx] Initial useEffect running.');
-    console.log('[App.tsx] window.electronApi in useEffect:', window.electronApi);
+    console.log('[App.tsx] Initial useEffect for voice setup running.');
+    const audio = new Audio();
+    audioRef.current = audio;
 
+    if ('speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined') {
+      const handleVoicesChanged = () => {
+        try {
+          const voices = window.speechSynthesis.getVoices();
+          console.log('[App.tsx] Voices changed/loaded. Count:', voices.length, voices);
+          setAvailableVoices(voices);
+          if (voices.length === 0) {
+            console.warn("[App.tsx] No voices found after onvoiceschanged. Speech synthesis will use fallback or fail if no fallback.");
+            // If no voices are found, we consider speech synthesis not fully supported for speaking.
+            setAudioSupported(false); 
+          } else {
+            // Voices found, mark as supported. The speak function will pick one.
+            setAudioSupported(true);
+          }
+        } catch (e) {
+          console.error('[App.tsx] Error in handleVoicesChanged:', e);
+          setAudioSupported(false);
+        }
+      };
+
+      // Attempt to get voices immediately
+      const initialVoices = window.speechSynthesis.getVoices();
+      if (initialVoices.length > 0) {
+        console.log('[App.tsx] Initial voices found:', initialVoices.length, initialVoices);
+        setAvailableVoices(initialVoices);
+        setAudioSupported(true);
+      } else {
+        console.log('[App.tsx] No initial voices, setting up onvoiceschanged listener.');
+        window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
+        // Fallback timeout if onvoiceschanged doesn't fire or doesn't populate voices
+        const voiceLoadTimeout = setTimeout(() => {
+          if (window.speechSynthesis.getVoices().length === 0 && availableVoices.length === 0) {
+            console.warn('[App.tsx] Timeout: Still no voices after delay. Assuming speech synthesis not fully available for speaking.');
+            setAudioSupported(false); // Mark as unsupported for speaking
+          }
+        }, 3000); // Check after 3 seconds
+        return () => clearTimeout(voiceLoadTimeout); // Cleanup timeout
+      }
+    } else {
+      console.warn('[App.tsx] SpeechSynthesis API not fully supported.');
+      setAudioSupported(false);
+    }
+    
+    return () => {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = null;
+        }
+    }
+  }, []); // Runs once on mount
+
+  const speakText = (text: string) => {
+    console.log('[App.tsx] speakText called with:', text);
+    if (!text) {
+      console.log('[App.tsx] speakText: text is empty, skipping.');
+      return;
+    }
+    voiceQueueRef.current.push(text);
+    if (!isProcessingQueueRef.current) {
+      processVoiceQueue();
+    }
+  };
+  
+  const processVoiceQueue = () => {
+    if (voiceQueueRef.current.length === 0) {
+      isProcessingQueueRef.current = false;
+      return;
+    }
+    
+    isProcessingQueueRef.current = true;
+    const text = voiceQueueRef.current.shift()!;
+    
+    if (text === lastVoiceRef.current && isSpeaking) {
+      setTimeout(processVoiceQueue, 50);
+      return;
+    }
+
+    try {
+      // Only attempt SpeechSynthesis if API is supported AND voices are available
+      if (audioSupported && availableVoices.length > 0 && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined') {
+        console.log('[App.tsx] Using SpeechSynthesis API to speak:', text);
+        window.speechSynthesis.cancel();
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        const chineseVoice = availableVoices.find(voice => voice.lang.toLowerCase().startsWith('zh') || voice.name.toLowerCase().includes('chinese') || voice.name.toLowerCase().includes('中文'));
+        if (chineseVoice) {
+          utterance.voice = chineseVoice;
+          console.log('[App.tsx] Using voice:', chineseVoice.name, chineseVoice.lang);
+        } else {
+          console.log('[App.tsx] No specific Chinese voice found, using default system voice (if any).');
+        }
+        utterance.lang = 'zh-CN'; // Explicitly set lang for the utterance
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+        
+        utterance.onstart = () => {
+          console.log('[App.tsx] Speech started:', text);
+          setIsSpeaking(true);
+          lastVoiceRef.current = text;
+        };
+        
+        utterance.onend = () => {
+          console.log('[App.tsx] Speech ended:', text);
+          setIsSpeaking(false);
+          setTimeout(processVoiceQueue, 100);
+        };
+        
+        utterance.onerror = (event) => {
+          if (event.error !== 'canceled') {
+            console.error('[App.tsx] SpeechSynthesisUtterance error:', event.error, event);
+          }
+          setIsSpeaking(false);
+          // If speaking fails, consider it unsupported for future attempts in this session
+          // setAudioSupported(false); // This might be too aggressive, could be a one-off error
+          setTimeout(processVoiceQueue, 100);
+        };
+        
+        window.speechSynthesis.speak(utterance);
+      } else if (audioRef.current) { // Fallback to <audio> element
+        console.warn(`[App.tsx] SpeechSynthesis not usable (audioSupported: ${audioSupported}, availableVoices: ${availableVoices.length}). Attempting fallback audio for:`, text);
+        let audioSrc = '';
+        if (text.includes('成功') || text.includes('请进') || text.includes('欢迎')) {
+          audioSrc = '/audio/success.mp3'; // Corrected path
+        } else if (text.includes('无效') || text.includes('错误')) {
+          audioSrc = '/audio/error.mp3'; // Corrected path
+        } else {
+          audioSrc = '/audio/notify.mp3'; // Corrected path
+        }
+        
+        console.log('[App.tsx] Setting fallback audio src to:', audioSrc);
+        audioRef.current.src = audioSrc;
+        audioRef.current.onplay = () => {
+            console.log('[App.tsx] Fallback audio started playing:', audioSrc);
+            setIsSpeaking(true);
+        }
+        audioRef.current.onended = () => {
+          console.log('[App.tsx] Fallback audio ended:', audioSrc);
+          setIsSpeaking(false);
+          setTimeout(processVoiceQueue, 100);
+        };
+        audioRef.current.onerror = (e) => {
+          console.error('[App.tsx] Fallback audio error for src:', audioSrc, e);
+          setIsSpeaking(false);
+          setTimeout(processVoiceQueue, 100);
+        };
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.error('[App.tsx] Fallback audio play() promise rejected for src:', audioSrc, error);
+            setIsSpeaking(false);
+            setTimeout(processVoiceQueue, 100);
+          });
+        } else {
+            console.warn('[App.tsx] Fallback audio play() did not return a promise.');
+        }
+      } else {
+        console.error('[App.tsx] No speech synthesis (or no voices/support) and no fallback audio element. Cannot play:', text);
+        setIsSpeaking(false);
+        setTimeout(processVoiceQueue, 100);
+      }
+    } catch (error) {
+      console.error('[App.tsx] Error in processVoiceQueue:', error);
+      setIsSpeaking(false);
+      setTimeout(processVoiceQueue, 100);
+    }
+  };
+
+  useEffect(() => {
+    console.log('[App.tsx] Initial data fetch and listener setup useEffect running.');
     const fetchInitialData = async () => {
       console.log('[App.tsx] Attempting to fetch initial config via electronApi.getConfig...');
       if (window.electronApi && typeof window.electronApi.getConfig === 'function') {
         try {
           const data = await window.electronApi.getConfig();
           console.log('[App.tsx] getConfig returned:', data);
-          if (data) { // Check if data is not null/undefined
+          if (data) { 
             setTicketData(prev => ({ ...prev, ...data, line2: data.line2 || data.ticketName || '票务系统' }));
           } else {
             console.warn('[App.tsx] getConfig returned null or undefined data.');
@@ -110,10 +279,15 @@ const App: React.FC = () => {
       try {
          removeUpdateListener = window.electronApi.onTicketUpdated((newData) => {
           console.log('[App.tsx] Received ticket update via onTicketUpdated:', newData);
-          if (newData) { // Check if newData is not null/undefined
+          if (newData) { 
             setTicketData(prev => ({ ...prev, ...newData }));
-            // Temporarily disable voice to isolate crash
-            // if (newData.voice) speakText(newData.voice);
+            if (newData.voice) {
+              speakText(newData.voice);
+            } else if (newData.cmd === 83 || newData.cmd === 82) {
+              speakText("检票成功! 请通行.");
+            } else {
+              speakText("无效票!");
+            }
           } else {
             console.warn('[App.tsx] onTicketUpdated received null or undefined data.');
           }
@@ -125,15 +299,9 @@ const App: React.FC = () => {
     } else {
       console.error('[App.tsx] window.electronApi.onTicketUpdated is not available.');
     }
-
-    // Temporarily disable audio/speech synthesis setup to isolate crash
-    // console.log('[App.tsx] Setting up audio and speech synthesis...');
-    // const audio = new Audio();
-    // audioRef.current = audio;
-    // if ('speechSynthesis' in window) { ... } else { setAudioSupported(false); }
-
+    
     return () => {
-      console.log('[App.tsx] useEffect cleanup running.');
+      console.log('[App.tsx] useEffect cleanup running for data fetch and listeners.');
       if (removeUpdateListener && typeof removeUpdateListener === 'function') {
         console.log('[App.tsx] Cleaning up onTicketUpdated listener.');
         try {
@@ -142,22 +310,25 @@ const App: React.FC = () => {
           console.error('[App.tsx] Error cleaning up onTicketUpdated listener:', err);
         }
       }
-      // if ('speechSynthesis' in window) { window.speechSynthesis.cancel(); }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
     };
-  }, []); // Empty dependency array means this runs once on mount and cleans up on unmount
-
-  // speakText and processVoiceQueue functions are complex and might be a source of issues on Win7.
-  // For now, let's assume they are not called due to the above simplifications.
-  // If the app still crashes, these are not the primary cause of the *initial* crash
-
-  const speakText = (text: string) => {
-    console.log('[App.tsx] speakText called with:', text);
-    // Actual speech logic temporarily disabled for stability testing
-  };
+  }, []); 
+  
+  useEffect(() => {
+    // This effect triggers when ticketData.voice changes.
+    // The speakText function itself contains the logic to queue and then
+    // processVoiceQueue will decide if it can actually speak based on audioSupported and availableVoices.
+    if (ticketData.voice && ticketData.voice !== lastVoiceRef.current) {
+      console.log('[App.tsx] ticketData.voice changed, queuing to speak:', ticketData.voice);
+      speakText(ticketData.voice);
+    }
+  }, [ticketData.voice]);
 
   return (
     <div className="container">
-      {/* <audio ref={audioRef} style={{ display: 'none' }} /> */}
+      <audio ref={audioRef} style={{ display: 'none' }} />
       
       <h1 className="title">欢迎光临!</h1>
       {error && <p style={{ color: 'red' }}>错误: {error}</p>}

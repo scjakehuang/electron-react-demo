@@ -24,11 +24,14 @@
     "dist": "tsc && vite build && electron-builder --win --x64"
   },
   "dependencies": {
-    "crypto-browserify": "^3.12.1",
     "electron-updater": "^4.6.5",
-    "stream-browserify": "^3.0.0"
+    "koa": "^3.0.0",
+    "koa-bodyparser": "^4.4.1",
+    "koa-router": "^13.0.1"
   },
   "devDependencies": {
+    "crypto-browserify": "^3.12.1",
+    "stream-browserify": "^3.0.0",
     "@playwright/test": "^1.48.2",
     "@types/electron-store": "^1.3.1",
     "@types/koa": "^2.15.0",
@@ -48,9 +51,6 @@
     "electron-conf": "^1.3.0",
     "electron-log": "^5.4.0",
     "electron-store": "^10.0.1",
-    "koa": "^3.0.0",
-    "koa-bodyparser": "^4.4.1",
-    "koa-router": "^13.0.1",
     "less": "^4.3.0",
     "mockjs": "^1.1.0",
     "nodemon": "^3.1.10",

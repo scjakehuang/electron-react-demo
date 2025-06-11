@@ -20,8 +20,9 @@ export default defineConfig({
               external: [
                 'electron',
                 'electron-devtools-installer',
-                // 'koa', 'koa-router', 'koa-bodyparser' 
-                // 已移除 Koa 相关依赖，让 Rollup 打包进 bundle
+                'koa', // Add back to externals
+                'koa-router', // Add back to externals
+                'koa-bodyparser' // Add back to externals
               ],
             },
             emptyOutDir: false,

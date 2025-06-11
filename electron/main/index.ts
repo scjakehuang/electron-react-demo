@@ -6,7 +6,7 @@ import os from 'os'; // For OS specific checks if needed
 
 // Configure electron-log
 import log from 'electron-log';
-log.transports.file.resolvePath = () => path.join(app.getPath('userData'), 'logs', 'main.log');
+log.transports.file.resolvePathFn = () => path.join(app.getPath('userData'), 'logs', 'main.log'); // 使用 resolvePathFn
 log.transports.file.level = 'info';
 log.transports.console.level = 'info'; // Keep console logging as well during dev
 Object.assign(console, log.functions); // Redirect console to electron-log
