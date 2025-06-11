@@ -60,7 +60,10 @@ body {
 /* 左侧区域 */
 .left-section {
   flex: 2;
-  padding: 2rem;
+  /* padding: 2rem; */ /* 修改此处的 padding */
+  /* padding: calc(2rem - 15px) 2rem 2rem; */ /* 原来的 padding */
+  /* 修改为: top, right, bottom, left */
+  padding: calc(2rem - 15px) 2rem 2rem calc(2rem - 15px); /* 左边 padding 减少 15px */
   color: #333;
 }
 
@@ -115,6 +118,25 @@ body {
 
 .success-count {
   font-weight: bold;
+}
+
+/* 新增样式 */
+.ticket-stat-line {
+  font-size: 1rem; /* 可根据需要调整字体大小 */
+  color: #333; /* 可根据需要调整字体颜色 */
+  margin-top: 5px; /* 可根据需要调整与上方元素的间距 */
+  text-align: left; /* 修改为左对齐 */
+}
+
+.stat-label {
+  /* 如果需要，可以为标签添加特定样式 */
+  /* font-weight: normal; */
+}
+
+.stat-value {
+  /* 如果需要，可以为数值添加特定样式 */
+  font-weight: bold;
+  color: #e60020; /* 示例：让数值使用主题红色 */
 }
 
 /* 右侧区域 */

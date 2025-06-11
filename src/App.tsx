@@ -376,15 +376,24 @@ const App: React.FC = () => {
           </div>
           <div className="info">
             {ticketData.cmd === 83 ? (
-              <>
-                <p className="success-message" style={{ color: '#28a745' }}>
-                  请进
-                </p>
-                <h2 className="ticket-type">{ticketData.line1}</h2>
-                <span className="success-count">{ticketData.personnum}</span>
-              </>
+                <>
+                  <p className="success-message" style={{color: '#28a745'}}>
+                    请进
+                  </p>
+                  <h2 className="ticket-type">{ticketData.line1}</h2>
+                  {/* 修改开始 */}
+                  <p className="ticket-stat-line">
+                    <span className="stat-label">检票成功数：</span>
+                    <span className="stat-value">{ticketData.personnum}</span>
+                  </p>
+                  <p className="ticket-stat-line">
+                    <span className="stat-label">已检票数/购票数：</span>
+                    <span className="stat-value">{ticketData.line2}</span>
+                  </p>
+                  {/* 修改结束 */}
+                </>
             ) : (
-              <p className="success-message" style={{ color: '#dc3545' }}>
+                <p className="success-message" style={{color: '#dc3545' }}>
                 无效票
               </p>
             )}
