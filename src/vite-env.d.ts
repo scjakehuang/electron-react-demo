@@ -1,6 +1,5 @@
 /// <reference types="vite/client" />
 
-// 添加SpeechSynthesis类型声明，以防TypeScript报错
 interface Window {
   electronApi?: {
     getConfig: () => Promise<{
@@ -23,11 +22,18 @@ interface Window {
       successCount?: number;
     }>;
     checkTicket: (data: any) => Promise<any>;
-    onTicketUpdated: (callback: (data: any) => void) => void;
+    onTicketUpdated: (callback: (data: any) => void) => (() => void); // Ensure it returns a function for cleanup
     removeTicketListener: () => void;
+    
+    // 添加其他组件中使用的方法定义
+    userConfig: (action: string, value?: any) => Promise<any>;
+    httpRequest: (url: string, method: string, params?: any) => Promise<any>;
+    lauchApp: (appName: string, args?: string[]) => Promise<any>;
+    getAppPath: (appName: string) => Promise<string>;
+    getWindowInfo: () => Promise<any>;
   };
   
-  // 添加ipcRenderer接口用于update组件
+  // 添加ipcRenderer接口用于其他组件
   ipcRenderer?: {
     on: (channel: string, listener: (event: any, ...args: any[]) => void) => void;
     send: (channel: string, ...args: any[]) => void;

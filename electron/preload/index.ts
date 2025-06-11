@@ -1,65 +1,61 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-console.log('[Preload] Preload script starting...');
+console.log('[Preload Script] Preload script executing...');
 
-// 检查contextBridge是否可用
-if (!contextBridge) {
-  console.error('[Preload] contextBridge不可用，无法暴露API');
-}
-
-// 调试信息
-console.log('[Preload] 当前window:', typeof window);
-console.log('[Preload] 当前document:', typeof document);
-
-// 尝试暴露API
 try {
   contextBridge.exposeInMainWorld('electronApi', {
     getConfig: () => {
-      console.log('[Preload] window.electronApi.getConfig called');
-      try {
-        // 使用IPC与主进程通信
-        return ipcRenderer.invoke('get-config');
-      } catch (error) {
-        console.error('[Preload] IPC调用失败:', error);
-        // 返回备用数据
-        return Promise.resolve({
-          ticketName: '预加载票种 (备用)',
-          checkResult: true,
-          machineCount: 5,
-          stationCount: 10,
-          successCount: 150,
-        });
-      }
+      console.log('[Preload Script] electronApi.getConfig called by renderer.');
+      return ipcRenderer.invoke('get-config');
     },
-    
-    // 添加检票方法 - 添加类型注解
     checkTicket: (ticketData: any) => {
-      console.log('[Preload] window.electronApi.checkTicket called with:', ticketData);
+      console.log('[Preload Script] electronApi.checkTicket called by renderer with data:', ticketData);
       return ipcRenderer.invoke('check-ticket', ticketData);
     },
-
-    // 添加监听检票更新事件的方法 - 添加类型注解
     onTicketUpdated: (callback: (data: any) => void) => {
-      console.log('[Preload] 注册检票更新监听器');
-      // 移除之前的监听器以避免重复
-      ipcRenderer.removeAllListeners('ticket-updated');
-      // 添加新的监听器
-      ipcRenderer.on('ticket-updated', (_, ticketData) => {
-        console.log('[Preload] 收到检票更新事件:', ticketData);
-        callback(ticketData);
-      });
+      console.log('[Preload Script] electronApi.onTicketUpdated listener being set up by renderer.');
+      const listener = (_: any, data: any) => callback(data);
+      ipcRenderer.on('ticket-updated', listener);
+      // Return a function to remove the listener
+      return () => {
+        console.log('[Preload Script] Removing "ticket-updated" listener.');
+        ipcRenderer.removeListener('ticket-updated', listener);
+      };
     },
-    
-    // 移除检票更新事件监听器的方法
-    removeTicketListener: () => {
-      console.log('[Preload] 移除检票更新监听器');
+    removeTicketListener: () => { // This might be redundant if onTicketUpdated returns a remover
+      console.log('[Preload Script] electronApi.removeTicketListener called by renderer.');
       ipcRenderer.removeAllListeners('ticket-updated');
     }
   });
-  
-  console.log('[Preload] electronApi成功暴露');
+  console.log('[Preload Script] electronApi successfully exposed to main world.');
 } catch (error) {
-  console.error('[Preload] 暴露API失败:', error);
+  console.error('[Preload Script] Error exposing electronApi:', error);
 }
 
-console.log('[Preload] Preload script finished');
+// Expose ipcRenderer for other components if they directly use it (as seen in build errors)
+// This is generally less secure than specific bridged methods but matches previous error context.
+try {
+    contextBridge.exposeInMainWorld('ipcRenderer', {
+        on: (channel: string, func: (...args: any[]) => void) => {
+            ipcRenderer.on(channel, (event, ...args) => func(...args));
+        },
+        send: (channel: string, ...args: any[]) => {
+            ipcRenderer.send(channel, ...args);
+        },
+        invoke: (channel: string, ...args: any[]) => {
+            return ipcRenderer.invoke(channel, ...args);
+        },
+        off: (channel: string, func: (...args: any[]) => void) => {
+            ipcRenderer.removeListener(channel, func);
+        },
+        removeAllListeners: (channel: string) => {
+            ipcRenderer.removeAllListeners(channel);
+        }
+    });
+    console.log('[Preload Script] ipcRenderer successfully exposed to main world.');
+} catch (error) {
+    console.error('[Preload Script] Error exposing ipcRenderer:', error);
+}
+
+
+console.log('[Preload Script] Preload script execution finished.');

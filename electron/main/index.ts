@@ -2,186 +2,250 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import path from 'node:path'
 import { startApiServer, setTicketUpdateCallback } from '../server/api'
 import http from 'http'
+import os from 'os'; // For OS specific checks if needed
 
-// 简单的控制台日志辅助函数
-const log = (message: string) => {
-  console.log(`[${new Date().toISOString()}] ${message}`)
+// Configure electron-log
+import log from 'electron-log';
+log.transports.file.resolvePath = () => path.join(app.getPath('userData'), 'logs', 'main.log');
+log.transports.file.level = 'info';
+log.transports.console.level = 'info'; // Keep console logging as well during dev
+Object.assign(console, log.functions); // Redirect console to electron-log
+
+// Call disableHardwareAcceleration immediately after app import if Win7
+const isWin7 = process.platform === 'win32' && os.release().startsWith('6.1');
+if (isWin7) {
+  console.log('Windows 7 detected, disabling hardware acceleration BEFORE app ready.');
+  app.disableHardwareAcceleration();
 }
 
-// 程序启动时记录日志
-log('应用程序启动')
+console.log('-----------------------------------------------------');
+console.log(`Application starting. Electron version: ${process.versions.electron}, Node version: ${process.versions.node}, Chrome version: ${process.versions.chrome}`);
+console.log(`OS: ${os.platform()} ${os.release()}`);
+console.log('User data path:', app.getPath('userData'));
+console.log('-----------------------------------------------------');
+
 
 let win: BrowserWindow | null = null
-// __dirname in CJS (after Vite build) will be dist-electron/main/
 const preloadScriptPath = path.join(__dirname, '../preload/index.js')
 const indexHtml = path.join(__dirname, '../../dist/index.html')
 
-// 添加 IPC 处理器用于获取配置
+// IPC: get-config
 ipcMain.handle('get-config', async () => {
-  log('IPC: get-config 被调用')
-  return {
-    cmd: 82,
-    personnum: 1,
-    line1: '欢迎光临',
-    line2: '云程票务',
-    line3: '请通行',
-    line4: '祝您游玩愉快',
-    line5: '',
-    voice: '请进',
-    filename: 'welcome.jpg',
-    showcount: 1,
-    title: '今日入场',
-    entrycount: 0
+  console.log('IPC HANDLER: get-config invoked.');
+  try {
+    const configData = {
+      cmd: 82,
+      personnum: 1,
+      line1: '欢迎光临',
+      line2: '云程票务',
+      line3: '请通行',
+      line4: '祝您游玩愉快',
+      line5: '',
+      voice: '请进',
+      filename: 'welcome.jpg',
+      showcount: 1,
+      title: '今日入场',
+      entrycount: 0
+    };
+    console.log('IPC HANDLER: get-config returning:', JSON.stringify(configData));
+    return configData;
+  } catch (error) {
+    console.error('IPC HANDLER: get-config error:', error);
+    throw error; // Re-throw to be caught by renderer if it handles it
   }
 })
 
-// 添加 IPC 处理器用于检票
+// IPC: check-ticket
 ipcMain.handle('check-ticket', async (_, ticketData) => {
-  log(`IPC: check-ticket 被调用，数据: ${JSON.stringify(ticketData)}`)
-  
-  // 向本地 API 服务器发送请求
-  return new Promise((resolve, reject) => {
-    const postData = JSON.stringify(ticketData)
-    
-    const options = {
-      hostname: '127.0.0.1',
-      port: 3001,
-      path: '/api/check-ticket',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData)
-      }
-    }
-    
-    const req = http.request(options, (res) => {
-      let data = ''
-      
-      res.on('data', (chunk) => {
-        data += chunk
-      })
-      
-      res.on('end', () => {
-        try {
-          const result = JSON.parse(data)
-          log(`API响应: ${JSON.stringify(result)}`)
-          resolve(result)
-        } catch (error) {
-          log(`解析API响应失败: ${error}`)
-          reject(error)
+  console.log(`IPC HANDLER: check-ticket invoked. Data: ${JSON.stringify(ticketData)}`);
+  try {
+    return new Promise((resolve, reject) => {
+      const postData = JSON.stringify(ticketData)
+      const options = {
+        hostname: '127.0.0.1',
+        port: 3001,
+        path: '/api/check-ticket',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
         }
-      })
-    })
-    
-    req.on('error', (error) => {
-      log(`API请求失败: ${error}`)
-      reject(error)
-    })
-    
-    req.write(postData)
-    req.end()
-  })
+      }
+      
+      console.log('IPC HANDLER: check-ticket - Sending HTTP request to API server with options:', options);
+      const req = http.request(options, (res) => {
+        let data = ''
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          try {
+            const result = JSON.parse(data);
+            console.log(`IPC HANDLER: check-ticket - API response: ${JSON.stringify(result)}`);
+            resolve(result);
+          } catch (parseError) {
+            console.error(`IPC HANDLER: check-ticket - Failed to parse API response: ${parseError}. Raw data: ${data}`);
+            reject(parseError);
+          }
+        });
+      });
+      req.on('error', (httpError) => {
+        console.error(`IPC HANDLER: check-ticket - HTTP request to API server failed: ${httpError}`);
+        reject(httpError);
+      });
+      req.write(postData);
+      req.end();
+    });
+  } catch (error) {
+    console.error('IPC HANDLER: check-ticket error:', error);
+    throw error;
+  }
 })
 
 function createWindow() {
+  console.log('Attempting to create main window...');
   try {
-    log('开始创建窗口')
-    
-    // 使用最简单的窗口配置
     win = new BrowserWindow({
-      width: 1200,
-      height: 800,
-      show: true, // 直接显示窗口
+      width: 900,
+      height: 640,
+      show: false, // Use 'ready-to-show' event
       webPreferences: {
-        // 启用preload脚本
         preload: preloadScriptPath,
         nodeIntegration: false,
         contextIsolation: true,
-        // 添加对音频的支持
-        webSecurity: false, // 允许加载本地资源
-        allowRunningInsecureContent: true, // 允许运行不安全内容
+        webSecurity: true, // Recommended for production
+        allowRunningInsecureContent: false, // Recommended for production
+        devTools: process.env.NODE_ENV !== 'production', // Open DevTools in dev mode
       },
-    })
-    
-    // 音频权限
-    win.webContents.session.setPermissionRequestHandler(
-      (webContents, permission, callback) => {
-        if (permission === 'media') {
-          log('授予媒体权限');
-          return callback(true);
-        }
-        callback(true);
-      }
-    );
-    
-    log('窗口已创建')
+    });
 
-    // 开发模式直接显示开发者工具
-    win.webContents.openDevTools()
-    
-    // 显示状态日志
-    win.on('show', () => log('窗口已显示'))
-    win.on('hide', () => log('窗口已隐藏'))
-    win.on('close', () => log('窗口关闭中'))
+    console.log('Main window created. Adding event listeners...');
 
-    // 简化内容加载逻辑
-    const devServerUrl = process.env.VITE_DEV_SERVER_URL
-    log(`开发服务器URL: ${devServerUrl || '未设置'}`)
+    win.once('ready-to-show', () => {
+      console.log('Main window is ready to show. Showing window.');
+      win?.show();
+    });
+
+    win.on('focus', () => console.log('Main window focused.'));
+    win.on('blur', () => console.log('Main window blurred.'));
+    win.on('closed', () => {
+      console.log('Main window closed.');
+      win = null;
+    });
+    win.on('unresponsive', () => console.warn('Main window has become unresponsive!'));
+    win.on('responsive', () => console.log('Main window has become responsive again.'));
+    // win.on('crash', (event, killed) => console.error(`Main window CRASHED! Killed: ${killed}`, event)); // This was incorrect
+
+
+    const wc = win.webContents;
+    wc.on('did-start-loading', () => console.log('webContents: did-start-loading'));
+    wc.on('dom-ready', () => console.log('webContents: dom-ready'));
+    wc.on('did-finish-load', () => console.log('webContents: did-finish-load'));
+    wc.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+      console.error(`webContents: did-fail-load. URL: ${validatedURL}, Code: ${errorCode}, Desc: ${errorDescription}`);
+    });
+    wc.on('crashed', (event: Electron.Event, killed: boolean) => console.error(`webContents: CRASHED! Killed: ${killed}`, event)); // Corrected event and typed parameters
+    wc.on('render-process-gone', (event, details) => console.error(`webContents: render-process-gone! Reason: ${details.reason}`, event, details));
+    wc.on('did-stop-loading', () => console.log('webContents: did-stop-loading'));
+
+
+    // 音频权限 - This might not be necessary if not directly using microphone/camera
+    // win.webContents.session.setPermissionRequestHandler(
+    //   (webContents, permission, callback) => {
+    //     if (permission === 'media') {
+    //       console.log('Granting media permission.');
+    //       return callback(true);
+    //     }
+    //     callback(true); // Default grant other permissions
+    //   }
+    // );
+    
+    const devServerUrl = process.env.VITE_DEV_SERVER_URL;
+    console.log(`VITE_DEV_SERVER_URL: ${devServerUrl || 'Not set (production mode expected)'}`);
     
     if (devServerUrl) {
-      log(`尝试加载: ${devServerUrl}`)
+      console.log(`Loading URL: ${devServerUrl}`);
       win.loadURL(devServerUrl)
-        .then(() => log('URL加载成功'))
-        .catch(err => log(`URL加载失败: ${err}`))
+        .then(() => console.log(`Successfully loaded URL: ${devServerUrl}`))
+        .catch(err => console.error(`Failed to load URL ${devServerUrl}:`, err));
     } else {
-      log(`尝试加载文件: ${indexHtml}`)
+      console.log(`Loading file: ${indexHtml}`);
       win.loadFile(indexHtml)
-        .then(() => log('文件加载成功'))
-        .catch(err => log(`文件加载失败: ${err}`))
+        .then(() => console.log(`Successfully loaded file: ${indexHtml}`))
+        .catch(err => console.error(`Failed to load file ${indexHtml}:`, err));
     }
 
-    win.on('closed', () => {
-      win = null
-      log('窗口已关闭')
-    })
-
-  } catch (err) {
-    log(`窗口创建失败: ${err}`)
-    // 记录详细的错误堆栈
-    if (err instanceof Error) {
-      log(`错误堆栈: ${err.stack}`)
-    }
+  } catch (error) {
+    console.error('Error during createWindow:', error);
+    // Potentially quit app if window creation fails critically
+    // app.quit();
   }
 }
 
-// 确保任何未捕获的异常都被记录下来
-process.on('uncaughtException', (error) => {
-  log(`未捕获的异常: ${error}`)
-  if (error.stack) log(`堆栈: ${error.stack}`)
-})
+// Global error handlers
+process.on('uncaughtException', (error, origin) => {
+  console.error(`UNCAUGHT EXCEPTION: Origin: ${origin}`, error);
+  // Consider app.quit() in production for unrecoverable errors
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION at:', promise, 'reason:', reason);
+});
 
-app.whenReady().then(() => {
-  log('应用程序 ready 事件触发')
+app.on('ready', () => { // Changed from whenReady().then() to direct event for clarity
+  console.log('App "ready" event fired.');
+  
 
-  // 启动 API 服务
-  log('正在启动 API 服务...')
-  startApiServer()
-  log('API 服务启动完成')
+  console.log('Starting API server...');
+  try {
+    startApiServer();
+    console.log('API server started successfully.');
+  } catch (error) {
+    console.error('Failed to start API server:', error);
+  }
 
-  // 设置检票更新回调
-  setTicketUpdateCallback((ticketData) => {
-    log(`收到API服务检票更新通知: ${JSON.stringify(ticketData)}`)
-    if (win && !win.isDestroyed()) {
-      win.webContents.send('ticket-updated', ticketData)
-      log('已向渲染进程发送检票更新事件')
-    }
-  })
-
-  // 创建并显示窗口
-  createWindow()
-})
+  console.log('Setting up ticket update callback...');
+  try {
+    setTicketUpdateCallback((ticketData) => {
+      console.log(`Received ticket update from API server: ${JSON.stringify(ticketData)}`);
+      if (win && !win.isDestroyed() && win.webContents && !win.webContents.isDestroyed()) {
+        console.log('Sending "ticket-updated" event to renderer process.');
+        win.webContents.send('ticket-updated', ticketData);
+      } else {
+        console.warn('Window or webContents not available to send "ticket-updated" event.');
+      }
+    });
+    console.log('Ticket update callback set.');
+  } catch (error) {
+    console.error('Failed to set ticket update callback:', error);
+  }
+  
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
-  log('所有窗口已关闭')
-  app.quit() // 始终退出应用以简化调试
-})
+  console.log('All windows closed.');
+  if (process.platform !== 'darwin') {
+    console.log('Quitting application (not macOS).');
+    app.quit();
+  }
+});
+
+app.on('activate', () => {
+  console.log('App "activate" event fired.');
+  if (BrowserWindow.getAllWindows().length === 0) {
+    console.log('No windows open, creating new window.');
+    createWindow();
+  }
+});
+
+app.on('before-quit', (event) => {
+  console.log('App "before-quit" event fired.');
+  // event.preventDefault(); // Example: to prevent quitting
+});
+
+app.on('will-quit', (event) => {
+  console.log('App "will-quit" event fired.');
+  // event.preventDefault(); // Example: to prevent quitting
+});
+
+app.on('quit', (event, exitCode) => {
+  console.log(`App "quit" event fired. Exit code: ${exitCode}`);
+});
