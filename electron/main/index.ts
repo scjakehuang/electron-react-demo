@@ -34,17 +34,17 @@ ipcMain.handle('get-config', async () => {
   console.log('IPC HANDLER: get-config invoked.');
   try {
     const configData = {
-      cmd: 82,
-      personnum: 1,
-      line1: '欢迎光临',
-      line2: '云程票务',
-      line3: '请通行',
-      line4: '祝您游玩愉快',
+      cmd: 0,
+      personnum: 0,
+      line1: '',
+      line2: '',
+      line3: '',
+      line4: '',
       line5: '',
-      voice: '请进',
-      filename: 'welcome.jpg',
-      showcount: 1,
-      title: '今日入场',
+      voice: '',
+      filename: '',
+      showcount: 0,
+      title: '',
       entrycount: 0
     };
     console.log('IPC HANDLER: get-config returning:', JSON.stringify(configData));

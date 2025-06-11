@@ -52,17 +52,17 @@ console.log('[App.tsx] Script start. window.electronApi available:', !!window.el
 const App: React.FC = () => {
   console.log('[App.tsx] App component rendering/re-rendering.');
   const [ticketData, setTicketData] = useState<TicketData>({
-    cmd: 81, // Initial safe command
+    cmd: 0, // Initial safe command, will hide .info div
     personnum: 0,
-    line1: '系统初始化中...',
-    line2: '请稍候',
+    line1: '',
+    line2: '',
     line3: '',
     line4: '',
-    line5: '设备号---',
-    voice: '系统启动',
+    line5: '',
+    voice: '',
     filename: '',
     showcount: 0,
-    title: '统计信息',
+    title: '',
     entrycount: 0
   });
 
@@ -74,6 +74,7 @@ const App: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [audioSupported, setAudioSupported] = useState<boolean>(true); // Represents if SpeechSynthesis API is generally usable
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  // const [showInfoDetails, setShowInfoDetails] = useState<boolean>(false); // This state is no longer needed for this specific logic
 
   useEffect(() => {
     console.log('[App.tsx] Initial useEffect for voice setup running.');
@@ -131,12 +132,13 @@ const App: React.FC = () => {
   }, []); // Runs once on mount
 
   const speakText = (text: string) => {
-    console.log('[App.tsx] speakText called with:', text);
-    if (!text) {
-      console.log('[App.tsx] speakText: text is empty, skipping.');
+    const trimmedText = text?.trim(); // Trim whitespace
+    console.log('[App.tsx] speakText called with:', `"${text}"`, `(trimmed: "${trimmedText}")`);
+    if (!trimmedText) { // If trimmed text is empty, skip
+      console.log('[App.tsx] speakText: trimmed text is empty, skipping.');
       return;
     }
-    voiceQueueRef.current.push(text);
+    voiceQueueRef.current.push(trimmedText); // Push trimmed text to queue
     if (!isProcessingQueueRef.current) {
       processVoiceQueue();
     }
@@ -149,25 +151,16 @@ const App: React.FC = () => {
       console.log('[App.tsx] Voice queue empty, stopping processing.');
       return;
     }
-
-    // Ensure only one processing "thread"
-    if (isProcessingQueueRef.current && voiceQueueRef.current.length > 0) {
-        // This case should ideally not be hit if logic is correct,
-        // but as a safeguard if speakText calls processVoiceQueue while it's already running.
-        // However, speakText checks isProcessingQueueRef.current before calling.
-    }
+    
     isProcessingQueueRef.current = true;
     const text = voiceQueueRef.current.shift()!;
     console.log(`[App.tsx] Processing voice from queue: "${text}"`);
-
-    // This check was problematic and removed in previous steps, ensure it's not re-introduced.
-    // if (text === lastVoiceRef.current && isSpeaking) { ... }
-
+    
     try {
       if (audioSupported && availableVoices.length > 0 && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined') {
         console.log('[App.tsx] Using SpeechSynthesis API to speak:', text);
         window.speechSynthesis.cancel();
-
+        
         const utterance = new SpeechSynthesisUtterance(text);
         const chineseVoice = availableVoices.find(voice => voice.lang.toLowerCase().startsWith('zh') || voice.name.toLowerCase().includes('chinese') || voice.name.toLowerCase().includes('中文'));
         if (chineseVoice) {
@@ -176,23 +169,23 @@ const App: React.FC = () => {
         } else {
           console.log('[App.tsx] No specific Chinese voice found, using default system voice (if any).');
         }
-        utterance.lang = 'zh-CN';
+        utterance.lang = 'zh-CN'; 
         utterance.rate = 1.0;
         utterance.pitch = 1.0;
         utterance.volume = 1.0;
-
+        
         utterance.onstart = () => {
           console.log('[App.tsx] Speech started:', text);
           setIsSpeaking(true);
           lastVoiceRef.current = text;
         };
-
+        
         utterance.onend = () => {
           console.log('[App.tsx] Speech ended:', text);
           setIsSpeaking(false);
           setTimeout(processVoiceQueue, 100);
         };
-
+        
         utterance.onerror = (event) => {
           if (event.error !== 'canceled') {
             console.error('[App.tsx] SpeechSynthesisUtterance error:', event.error, event);
@@ -200,77 +193,82 @@ const App: React.FC = () => {
           setIsSpeaking(false);
           setTimeout(processVoiceQueue, 100);
         };
-
+        
         window.speechSynthesis.speak(utterance);
-      } else if (audioRef.current) {
+      } else if (audioRef.current) { 
         console.warn(`[App.tsx] SpeechSynthesis not usable (audioSupported: ${audioSupported}, availableVoices: ${availableVoices.length}). Attempting fallback audio for: "${text}"`);
         let audioSrc = '';
         if (text.includes('成功') || text.includes('请进') || text.includes('欢迎')) {
-          audioSrc = '/audio/success.mp3';
+          audioSrc = 'audio/success.mp3'; 
         } else if (text.includes('无效') || text.includes('错误')) {
-          audioSrc = '/audio/error.mp3';
+          audioSrc = 'audio/error.mp3'; 
         } else {
-          audioSrc = '/audio/notify.mp3';
+          audioSrc = 'audio/notify.mp3'; 
         }
+        
+        const currentAudioElement = audioRef.current;
+        console.log('[App.tsx] Setting fallback audio src to (relative path):', audioSrc);
+        currentAudioElement.src = audioSrc;
 
-        console.log('[App.tsx] Setting fallback audio src to:', audioSrc);
-        audioRef.current.src = audioSrc;
-
-        // Reset and attach event handlers each time src changes
-        audioRef.current.onplay = () => {
-            console.log('[App.tsx] Fallback audio started playing:', audioSrc);
-            setIsSpeaking(true);
-            lastVoiceRef.current = text; // Update lastRef here as well
-        };
-        audioRef.current.onended = () => {
-          console.log('[App.tsx] Fallback audio ended:', audioSrc);
-          setIsSpeaking(false);
-          setTimeout(processVoiceQueue, 100);
-        };
-        audioRef.current.onerror = (e) => {
-          // Log the error object itself for more details
-          const errorEvent = e as Event & { target?: { error?: MediaError | null } };
-          console.error('[App.tsx] Fallback audio error for src:', audioSrc, 'Error object:', errorEvent, 'MediaError:', errorEvent.target?.error);
-          setIsSpeaking(false);
-          setTimeout(processVoiceQueue, 100);
-        };
-
-        try {
-          console.log('[App.tsx] Attempting to call audioRef.current.play() for src:', audioSrc);
-          const playPromise = audioRef.current.play();
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                console.log('[App.tsx] Fallback audio play() promise resolved (playback likely started for src):', audioSrc);
-                // onplay event should handle setIsSpeaking(true)
-              })
-              .catch(error => {
-                console.error('[App.tsx] Fallback audio play() promise rejected for src:', audioSrc, error);
-                setIsSpeaking(false);
-                setTimeout(processVoiceQueue, 100); // Ensure queue continues
-              });
-          } else {
-              console.warn('[App.tsx] Fallback audio play() did not return a promise. Relying on events.');
-              // If no promise, onended/onerror should still fire. If not, queue might stall.
-              // For safety, if it's an old browser that doesn't return promise and doesn't fire events reliably,
-              // we might need a timeout here, but that's less likely in Electron 19.
+        // It's good practice to remove old listeners before adding new ones
+        // if the same audio element is reused.
+        const onCanPlayThrough = () => {
+          console.log('[App.tsx] Fallback audio can play through for src:', currentAudioElement.currentSrc);
+          try {
+            console.log('[App.tsx] Attempting to call audioRef.current.play() for src:', currentAudioElement.currentSrc);
+            const playPromise = currentAudioElement.play();
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => {
+                  console.log('[App.tsx] Fallback audio play() promise resolved (playback likely started for src):', currentAudioElement.currentSrc);
+                })
+                .catch(error => {
+                  console.error('[App.tsx] Fallback audio play() promise rejected for src:', currentAudioElement.currentSrc, error.name, error.message, error);
+                  setIsSpeaking(false);
+                  setTimeout(processVoiceQueue, 100); 
+                });
+            } else {
+                console.warn('[App.tsx] Fallback audio play() did not return a promise. Relying on events.');
+            }
+          } catch (playError) {
+            console.error('[App.tsx] Error directly calling audioRef.current.play() for src:', currentAudioElement.currentSrc, playError);
+            setIsSpeaking(false);
+            setTimeout(processVoiceQueue, 100); 
           }
-        } catch (playError) {
-          console.error('[App.tsx] Error directly calling audioRef.current.play() for src:', audioSrc, playError);
+          currentAudioElement.removeEventListener('canplaythrough', onCanPlayThrough);
+        };
+
+        currentAudioElement.onplay = () => {
+            console.log('[App.tsx] Fallback audio started playing:', currentAudioElement.currentSrc);
+            setIsSpeaking(true);
+            lastVoiceRef.current = text; 
+        };
+        currentAudioElement.onended = () => {
+          console.log('[App.tsx] Fallback audio ended:', currentAudioElement.currentSrc);
           setIsSpeaking(false);
-          setTimeout(processVoiceQueue, 100); // Ensure queue continues
-        }
+          setTimeout(processVoiceQueue, 100);
+        };
+        currentAudioElement.onerror = (e) => {
+          const errorEvent = e as Event & { target?: { error?: MediaError | null } };
+          console.error('[App.tsx] Fallback audio error for src:', currentAudioElement.currentSrc || audioSrc, 'Error object:', errorEvent, 'MediaError:', errorEvent.target?.error);
+          setIsSpeaking(false);
+          setTimeout(processVoiceQueue, 100);
+          currentAudioElement.removeEventListener('canplaythrough', onCanPlayThrough); // Clean up listener on error too
+        };
+        
+        console.log('[App.tsx] Adding canplaythrough listener and calling load() for fallback audio src:', audioSrc);
+        currentAudioElement.addEventListener('canplaythrough', onCanPlayThrough, { once: true });
+        currentAudioElement.load(); // Explicitly call load after setting src and attaching listeners
+
       } else {
         console.error('[App.tsx] No speech synthesis (or no voices/support) and no fallback audio element. Cannot play:', text);
-        setIsSpeaking(false); // Ensure speaking state is reset
-        setTimeout(processVoiceQueue, 100); // Continue queue processing
+        setIsSpeaking(false); 
+        setTimeout(processVoiceQueue, 100); 
       }
     } catch (error) {
       console.error('[App.tsx] Uncaught error in processVoiceQueue main logic for text:', `"${text}"`, error);
-      setIsSpeaking(false); // Reset speaking state
-      isProcessingQueueRef.current = false; // Attempt to reset queue processing flag
-      // Decide if we should attempt to process next item or stop.
-      // For now, let's try to continue the queue after a delay.
+      setIsSpeaking(false); 
+      isProcessingQueueRef.current = false; 
       setTimeout(processVoiceQueue, 100);
     }
   };
@@ -285,6 +283,7 @@ const App: React.FC = () => {
           console.log('[App.tsx] getConfig returned:', data);
           if (data) {
             setTicketData(prev => ({ ...prev, ...data, line2: data.line2 || data.ticketName || '票务系统' }));
+            // setShowInfoDetails(true); // No longer using setShowInfoDetails here
           } else {
             console.warn('[App.tsx] getConfig returned null or undefined data.');
             setError('无法获取初始配置。');
@@ -309,12 +308,25 @@ const App: React.FC = () => {
           console.log('[App.tsx] Received ticket update via onTicketUpdated:', newData);
           if (newData) {
             setTicketData(prev => ({ ...prev, ...newData }));
-            if (newData.voice) {
-              speakText(newData.voice);
-            } else if (newData.cmd === 83 || newData.cmd === 82) {
-              speakText("检票成功! 请通行.");
-            } else {
-              speakText("无效票!");
+            
+            const effectiveVoice = newData.voice?.trim(); // Get voice and trim whitespace
+
+            if (newData.cmd === 83 || newData.cmd === 82) { // Success commands
+              if (effectiveVoice) {
+                console.log('[App.tsx] Success cmd, using provided voice:', effectiveVoice);
+                speakText(effectiveVoice);
+              } else {
+                console.log('[App.tsx] Success cmd, using default success voice.');
+                speakText("检票成功! 请通行.");
+              }
+            } else { // Invalid commands (cmd is not 82 or 83)
+              if (effectiveVoice) { 
+                console.log('[App.tsx] Invalid cmd, using provided voice for error:', effectiveVoice);
+                speakText(effectiveVoice);
+              } else { 
+                console.log('[App.tsx] Invalid cmd, using default invalid voice.');
+                speakText("无效票!");
+              }
             }
           } else {
             console.warn('[App.tsx] onTicketUpdated received null or undefined data.');
@@ -345,12 +357,10 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // This effect triggers when ticketData.voice changes.
-    // The speakText function itself contains the logic to queue and then
-    // processVoiceQueue will decide if it can actually speak based on audioSupported and availableVoices.
-    if (ticketData.voice && ticketData.voice !== lastVoiceRef.current) {
-      console.log('[App.tsx] ticketData.voice changed, queuing to speak:', ticketData.voice);
-      speakText(ticketData.voice);
+    const voiceToSpeak = ticketData.voice?.trim();
+    if (voiceToSpeak && voiceToSpeak !== lastVoiceRef.current) {
+      console.log('[App.tsx] ticketData.voice changed, queuing to speak (trimmed):', voiceToSpeak);
+      speakText(voiceToSpeak);
     }
   }, [ticketData.voice]);
 
@@ -374,30 +384,32 @@ const App: React.FC = () => {
               hour12: false
             }).replace(/\//g, '年').replace(/\//g, '月').replace(/\s/, '日 ')}</p>
           </div>
-          <div className="info">
-            {ticketData.cmd === 83 ? (
-                <>
-                  <p className="success-message" style={{color: '#28a745'}}>
-                    请进
-                  </p>
-                  <h2 className="ticket-type">{ticketData.line1}</h2>
-                  {/* 修改开始 */}
-                  <p className="ticket-stat-line">
-                    <span className="stat-label">检票成功数：</span>
-                    <span className="stat-value">{ticketData.personnum}</span>
-                  </p>
-                  <p className="ticket-stat-line">
-                    <span className="stat-label">已检票数/购票数：</span>
-                    <span className="stat-value">{ticketData.line2}</span>
-                  </p>
-                  {/* 修改结束 */}
-                </>
-            ) : (
-                <p className="success-message" style={{color: '#dc3545' }}>
-                无效票
-              </p>
-            )}
-          </div>
+          {ticketData.cmd !== 0 && ( // Conditionally render the info div based on cmd
+            <div className="info">
+              {ticketData.cmd === 83 ? (
+                  <>
+                    <p className="success-message" style={{color: '#28a745'}}>
+                      请进
+                    </p>
+                    <h2 className="ticket-type">{ticketData.line1}</h2>
+                    {/* 修改开始 */}
+                    <p className="ticket-stat-line">
+                      <span className="stat-label">检票成功数：</span>
+                      <span className="stat-value">{ticketData.personnum}</span>
+                    </p>
+                    <p className="ticket-stat-line">
+                      <span className="stat-label">已检票数/购票数：</span>
+                      <span className="stat-value">{ticketData.line2}</span>
+                    </p>
+                    {/* 修改结束 */}
+                  </>
+              ) : ( // This will now only be reached if cmd is not 0 and not 83 (e.g., 81 or other invalid commands)
+                  <p className="success-message" style={{color: '#dc3545' }}>
+                  无效票
+                </p>
+              )}
+            </div>
+          )}
         </div>
         <div className="right-section">
           <h3 className="gate">{ticketData.line5 || '闸机口'}</h3>
