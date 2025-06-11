@@ -75,6 +75,7 @@ const App: React.FC = () => {
   const [audioSupported, setAudioSupported] = useState<boolean>(true); // Represents if SpeechSynthesis API is generally usable
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   // const [showInfoDetails, setShowInfoDetails] = useState<boolean>(false); // This state is no longer needed for this specific logic
+  const displayTimeoutRef = useRef<number | null>(null); // Ref to store the timeout ID
 
   useEffect(() => {
     console.log('[App.tsx] Initial useEffect for voice setup running.');
@@ -128,6 +129,9 @@ const App: React.FC = () => {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.onvoiceschanged = null;
         }
+        if (displayTimeoutRef.current !== null) { // Clear timeout on unmount
+            clearTimeout(displayTimeoutRef.current);
+        }
     }
   }, []); // Runs once on mount
 
@@ -162,13 +166,13 @@ const App: React.FC = () => {
     }
     
     isProcessingQueueRef.current = true;
-    const text = voiceQueueRef.current.shift()!; // Get the next item from the queue
+    const text = voiceQueueRef.current.shift()!; 
     console.log(`[App.tsx] Processing voice from queue: "${text}"`);
     
     try {
       if (audioSupported && availableVoices.length > 0 && 'speechSynthesis' in window && typeof SpeechSynthesisUtterance !== 'undefined') {
         console.log('[App.tsx] Using SpeechSynthesis API to speak:', text);
-        window.speechSynthesis.cancel();
+        window.speechSynthesis.cancel(); // Cancel any previous speech
         
         const utterance = new SpeechSynthesisUtterance(text);
         const chineseVoice = availableVoices.find(voice => voice.lang.toLowerCase().startsWith('zh') || voice.name.toLowerCase().includes('chinese') || voice.name.toLowerCase().includes('中文'));
@@ -202,7 +206,7 @@ const App: React.FC = () => {
             console.log('[App.tsx] SpeechSynthesisUtterance canceled for:', text);
           }
           setIsSpeaking(false);
-          setTimeout(processVoiceQueue, 100); // Process next item
+          setTimeout(processVoiceQueue, 100); 
         };
         
         window.speechSynthesis.speak(utterance);
@@ -217,78 +221,99 @@ const App: React.FC = () => {
           audioSrc = 'audio/notify.mp3'; 
         }
         
-        const currentAudioElement = audioRef.current;
-        console.log('[App.tsx] Setting fallback audio src to (relative path):', audioSrc);
-        
-        // Clean up old listeners before adding new ones
-        currentAudioElement.oncanplaythrough = null;
-        currentAudioElement.onplay = null;
-        currentAudioElement.onended = null;
-        currentAudioElement.onerror = null;
+        const audioElement = audioRef.current;
+        let playbackHandled = false;
 
-        // It's crucial to set src *before* attaching listeners that might depend on it,
-        // or before calling play if not waiting for canplaythrough.
-        currentAudioElement.src = audioSrc; 
-
-        const onCanPlayThrough = () => {
-          console.log('[App.tsx] Fallback audio can play through for src:', currentAudioElement.currentSrc);
-          // Ensure this listener is removed after firing once to prevent multiple calls if the event fires again for some reason
-          currentAudioElement.removeEventListener('canplaythrough', onCanPlayThrough);
-          try {
-            console.log('[App.tsx] Attempting to call audioRef.current.play() for src:', currentAudioElement.currentSrc);
-            const playPromise = currentAudioElement.play();
-            if (playPromise !== undefined) {
-              playPromise
-                .then(() => {
-                  console.log('[App.tsx] Fallback audio play() promise resolved (playback likely started for src):', currentAudioElement.currentSrc);
-                  // onplay event will handle setIsSpeaking(true)
-                })
-                .catch(error => {
-                  console.error('[App.tsx] Fallback audio play() promise rejected for src:', currentAudioElement.currentSrc, error.name, error.message, error);
-                  setIsSpeaking(false);
-                  setTimeout(processVoiceQueue, 100); 
-                });
-            } else {
-                // This case is unlikely in modern browsers but good to log
-                console.warn('[App.tsx] Fallback audio play() did not return a promise. Relying on events.');
-            }
-          } catch (playError) {
-            console.error('[App.tsx] Error directly calling audioRef.current.play() for src:', currentAudioElement.currentSrc, playError);
-            setIsSpeaking(false);
-            setTimeout(processVoiceQueue, 100); 
+        const handlePlaybackFinished = (reason: string) => {
+          if (playbackHandled) return;
+          playbackHandled = true;
+          console.log(`[App.tsx] Fallback audio playback finished/aborted for "${text}" (reason: ${reason}):`, audioSrc);
+          setIsSpeaking(false);
+          // Clean up listeners for the current playback
+          audioElement.onplay = null;
+          audioElement.onended = null;
+          audioElement.onerror = null;
+          // Ensure src is reset if needed, or audio is paused
+          if (!audioElement.paused) {
+            audioElement.pause();
           }
+          // audioElement.src = ''; // Optional: reset src to prevent re-triggering events on the same file if queue processes fast
+
+          setTimeout(processVoiceQueue, 100); // Process next item in the queue
         };
 
-        currentAudioElement.onplay = () => {
-            console.log('[App.tsx] Fallback audio started playing:', currentAudioElement.currentSrc);
+        // Set up event listeners
+        audioElement.onplay = () => {
+            console.log('[App.tsx] Fallback audio started playing:', audioElement.currentSrc);
             setIsSpeaking(true);
             lastVoiceRef.current = text; 
         };
-        currentAudioElement.onended = () => {
-          console.log('[App.tsx] Fallback audio ended:', currentAudioElement.currentSrc);
-          setIsSpeaking(false);
-          setTimeout(processVoiceQueue, 100);
-        };
-        currentAudioElement.onerror = (e) => {
-          const errorEvent = e as Event & { target?: { error?: MediaError | null } };
-          console.error('[App.tsx] Fallback audio error for src:', currentAudioElement.currentSrc || audioSrc, 'Error object:', errorEvent, 'MediaError:', errorEvent.target?.error);
-          if (currentAudioElement.currentSrc) {
-            console.error('[App.tsx] Resolved audio path on error:', currentAudioElement.currentSrc);
-          }
-          setIsSpeaking(false);
-          setTimeout(processVoiceQueue, 100);
-          // Clean up the canplaythrough listener if an error occurs before it fires
-          currentAudioElement.removeEventListener('canplaythrough', onCanPlayThrough);
+        audioElement.onended = () => handlePlaybackFinished('ended');
+        audioElement.onerror = (e) => {
+          // Log the error object from the event if available
+          const mediaError = audioElement.error;
+          console.error('[App.tsx] Fallback audio error event for src:', audioElement.currentSrc || audioSrc, 
+                        'Raw event:', e, 
+                        'MediaError code:', mediaError?.code, 
+                        'Message:', mediaError?.message);
+          handlePlaybackFinished('error_event');
         };
         
-        console.log('[App.tsx] Adding canplaythrough listener for fallback audio src:', audioSrc);
-        currentAudioElement.addEventListener('canplaythrough', onCanPlayThrough);
-        
-        // Do NOT call currentAudioElement.load(); here. Setting src is usually enough.
-        // If 'canplaythrough' doesn't fire, 'onerror' should.
-        // Some browsers/environments might require a user interaction to play audio.
-        // If issues persist, consider a small delay before trying to play or a manual play button for debugging.
+        console.log('[App.tsx] Setting fallback audio src to:', audioSrc);
+        audioElement.src = audioSrc; 
 
+        try {
+          console.log('[App.tsx] Attempting to play fallback audio directly:', audioSrc);
+          // audioElement.load(); // Explicit load can sometimes help, but also cause issues. Try without first.
+          const playPromise = audioElement.play();
+
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                console.log('[App.tsx] Fallback audio play() promise resolved (playback likely started):', audioSrc);
+                // onplay event will handle setIsSpeaking(true)
+              })
+              .catch(error => {
+                console.error('[App.tsx] Fallback audio play() promise rejected:', audioSrc, error.name, error.message, error);
+                // This rejection might be due to autoplay policies or other issues.
+                // The 'onerror' event on the audio element should ideally also fire for media errors.
+                // Call handlePlaybackFinished to ensure queue continues if 'onerror' doesn't fire.
+                handlePlaybackFinished('play_promise_rejected');
+              });
+          } else {
+            console.warn('[App.tsx] audioElement.play() did not return a promise. Relying on onended/onerror events.');
+            // If play() doesn't return a promise, we can't catch its specific errors this way.
+            // We must rely on the 'onerror' event of the audio element.
+            // If 'onerror' doesn't fire and playback doesn't start, queue might stall.
+            // Add a failsafe timeout if no events fire after attempting play.
+            const failsafeTimeout = setTimeout(() => {
+                if (!playbackHandled && !audioElement.paused && audioElement.currentTime === 0) { // Check if stuck
+                    console.warn('[App.tsx] Fallback audio failsafe timeout: Playback did not start or end properly.', audioSrc);
+                    handlePlaybackFinished('failsafe_timeout');
+                }
+            }, 5000); // 5 seconds failsafe
+            // Clear failsafe if playback is handled
+            const originalOnPlay = audioElement.onplay;
+            audioElement.onplay = () => {
+                clearTimeout(failsafeTimeout);
+                if(originalOnPlay) originalOnPlay.call(audioElement);
+            };
+            const originalOnEnded = audioElement.onended;
+            audioElement.onended = () => {
+                clearTimeout(failsafeTimeout);
+                if(originalOnEnded) originalOnEnded.call(audioElement);
+            };
+             const originalOnError = audioElement.onerror;
+            audioElement.onerror = (e) => {
+                clearTimeout(failsafeTimeout);
+                if(originalOnError) originalOnError.call(audioElement, e);
+            };
+
+          }
+        } catch (e) {
+          console.error('[App.tsx] Exception calling audioElement.play():', audioSrc, e);
+          handlePlaybackFinished('play_sync_error');
+        }
       } else {
         console.error('[App.tsx] No speech synthesis (or no voices/support) and no fallback audio element. Cannot play:', text);
         setIsSpeaking(false); 
@@ -336,6 +361,13 @@ const App: React.FC = () => {
          removeUpdateListener = window.electronApi.onTicketUpdated((newData) => {
           console.log('[App.tsx] Received ticket update via onTicketUpdated:', newData);
           if (newData) {
+            // Clear any existing display timeout
+            if (displayTimeoutRef.current !== null) {
+              clearTimeout(displayTimeoutRef.current);
+              displayTimeoutRef.current = null;
+              console.log('[App.tsx] Cleared previous display timeout.');
+            }
+
             // Cancel any ongoing speech before processing new data
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
@@ -373,6 +405,17 @@ const App: React.FC = () => {
             } else {
                 console.log('[App.tsx] cmd is 0, no voice will be queued from onTicketUpdated.');
             }
+
+            // If it's a result to display (cmd is not 0), set a timeout to hide it
+            if (newData.cmd !== 0) {
+              console.log(`[App.tsx] Displaying ticket result (cmd: ${newData.cmd}). Setting 5s timeout to reset.`);
+              displayTimeoutRef.current = window.setTimeout(() => {
+                console.log('[App.tsx] 5s display timeout reached. Resetting cmd to 0 to hide info.');
+                setTicketData(prev => ({ ...prev, cmd: 0, line1: '', personnum: 0, line2: '' })); // Reset relevant fields
+                displayTimeoutRef.current = null;
+              }, 5000);
+            }
+
           } else {
             console.warn('[App.tsx] onTicketUpdated received null or undefined data.');
           }
@@ -397,6 +440,11 @@ const App: React.FC = () => {
       }
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
+      }
+      // Clear display timeout on unmount as well
+      if (displayTimeoutRef.current !== null) {
+        clearTimeout(displayTimeoutRef.current);
+        console.log('[App.tsx] Cleared display timeout on component unmount.');
       }
     };
   }, []);
