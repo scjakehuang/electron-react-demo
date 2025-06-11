@@ -133,6 +133,7 @@ body {
 .stat-label {
   /* 如果需要，可以为标签添加特定样式 */
   /* font-weight: normal; */
+  color: #e60020; /* 示例：让数值使用主题红色 */
 }
 
 .stat-value {
