@@ -104,9 +104,12 @@ async function createWindow() {
   log.info('Creating main window...');
   try {
     win = new BrowserWindow({
-      width: 800,
-      height: 550,
+      width: 800, // Initial width, will be overridden by fullscreen
+      height: 550, // Initial height, will be overridden by fullscreen
       show: false, // Use 'ready-to-show' event
+      fullscreen: true, // Open in fullscreen mode
+      frame: false, // Remove window frame (title bar, min/max/close buttons)
+      // kiosk: true, // Alternative for a more restrictive fullscreen, implies fullscreen:true and frame:false
       webPreferences: {
         preload: preloadScriptPath,
         nodeIntegration: false,
@@ -117,15 +120,12 @@ async function createWindow() {
       },
     });
 
-    log.info('Main window created.');
+    log.info('Main window created with fullscreen and no frame.');
 
-    // Remove application menu in packaged app
-    if (app.isPackaged) {
-      log.info('Application is packaged, removing application menu.');
-      Menu.setApplicationMenu(null); // For all windows of the app
-      // Or, if you want to remove menu only for this specific window:
-      // win.setMenu(null);
-    }
+    // Since frame: false is always used for this window,
+    // the application menu should always be removed.
+    log.info('Window is frameless, removing application menu.');
+    Menu.setApplicationMenu(null);
 
 
     win.on('ready-to-show', () => {
