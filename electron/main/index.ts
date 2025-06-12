@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, shell, ipcMain, Menu } from 'electron' // Added Menu
 import path from 'node:path'
 import { startApiServer, setTicketUpdateCallback } from '../server/api'
 import http from 'http'
@@ -100,11 +100,11 @@ ipcMain.handle('check-ticket', async (_, ticketData) => {
   }
 })
 
-function createWindow() {
-  console.log('Attempting to create main window...');
+async function createWindow() {
+  log.info('Creating main window...');
   try {
     win = new BrowserWindow({
-      width: 770,
+      width: 800,
       height: 550,
       show: false, // Use 'ready-to-show' event
       webPreferences: {
@@ -117,9 +117,18 @@ function createWindow() {
       },
     });
 
-    console.log('Main window created. Adding event listeners...');
+    log.info('Main window created.');
 
-    win.once('ready-to-show', () => {
+    // Remove application menu in packaged app
+    if (app.isPackaged) {
+      log.info('Application is packaged, removing application menu.');
+      Menu.setApplicationMenu(null); // For all windows of the app
+      // Or, if you want to remove menu only for this specific window:
+      // win.setMenu(null);
+    }
+
+
+    win.on('ready-to-show', () => {
       console.log('Main window is ready to show. Showing window.');
       win?.show();
     });

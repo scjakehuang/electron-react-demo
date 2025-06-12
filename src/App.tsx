@@ -471,7 +471,7 @@ const App: React.FC = () => {
       <div className="card">
         <div className="left-section">
           <div className="logo-and-datetime-wrapper"> {/* New wrapper div */}
-            <img src="/public/Group 1321318654@2x.png" alt="Logo" className="logo" />
+            <img src="Group 1321318654@2x.png" alt="Logo" className="logo" />
             <p className="date-time">{new Date().toLocaleString('zh-CN', {
               year: 'numeric',
               month: '2-digit',
