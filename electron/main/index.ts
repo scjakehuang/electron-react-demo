@@ -108,7 +108,7 @@ async function createWindow() {
       height: 550, // Initial height, will be overridden by fullscreen
       show: false, // Use 'ready-to-show' event
       fullscreen: true, // Open in fullscreen mode
-      frame: false, // Remove window frame (title bar, min/max/close buttons)
+      frame: true, // Remove window frame (title bar, min/max/close buttons)
       // kiosk: true, // Alternative for a more restrictive fullscreen, implies fullscreen:true and frame:false
       webPreferences: {
         preload: preloadScriptPath,
