@@ -501,7 +501,15 @@ const App: React.FC = () => {
                     </p>
                     {/* 修改结束 */}
                   </>
-              ) : ( // This will now only be reached if cmd is not 0 and not 83 (e.g., 81 or other invalid commands)
+              ) : ticketData.cmd === 1001 ? (
+                <p className="success-message" style={{color: '#dc3545' }}>
+                  网络异常
+                </p>
+              ) : ticketData.cmd === 1002 ? (
+                <p className="success-message" style={{color: '#dc3545' }}>
+                  人证不匹配
+                </p>
+              ) : ( // Default to "无效票" for other non-zero, non-83 cmd values
                   <p className="success-message" style={{color: '#dc3545' }}>
                   无效票
                 </p>
