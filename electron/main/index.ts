@@ -108,7 +108,7 @@ async function createWindow() {
       height: 550, // Initial height, will be overridden by fullscreen
       show: false, // Use 'ready-to-show' event
       fullscreen: true, // Open in fullscreen mode
-      frame: true, // Remove window frame (title bar, min/max/close buttons)
+      frame: false, // Set back to false for a frameless window
       // kiosk: true, // Alternative for a more restrictive fullscreen, implies fullscreen:true and frame:false
       webPreferences: {
         preload: preloadScriptPath,
@@ -154,6 +154,30 @@ async function createWindow() {
     wc.on('crashed', (event: Electron.Event, killed: boolean) => console.error(`webContents: CRASHED! Killed: ${killed}`, event)); // Corrected event and typed parameters
     wc.on('render-process-gone', (event, details) => console.error(`webContents: render-process-gone! Reason: ${details.reason}`, event, details));
     wc.on('did-stop-loading', () => console.log('webContents: did-stop-loading'));
+
+    // Add context menu listener
+    wc.on('context-menu', (event, params) => {
+      console.log('webContents: context-menu event triggered.', params);
+      const contextMenu = Menu.buildFromTemplate([
+        {
+          label: '最小化',
+          click: () => {
+            console.log('Context menu: Minimize clicked.');
+            win?.minimize();
+          },
+        },
+        {
+          label: '关闭',
+          click: () => {
+            console.log('Context menu: Close clicked.');
+            win?.close();
+          },
+        },
+      ]);
+      if (win) { // Ensure win is not null before calling popup
+        contextMenu.popup({ window: win });
+      }
+    });
 
 
     // 音频权限 - This might not be necessary if not directly using microphone/camera
