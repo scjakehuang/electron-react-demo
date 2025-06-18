@@ -14,10 +14,10 @@ interface TicketData {
   /** 第二行显示内容 (支持普通/安卓闸机) 已检票数/已购票数 */
   line2: string;
 
-  /** 第三行显示内容 (支持普通/安卓闸机) */
+  /** 第三行显示内容 (支持普通/安卓闸机) 已检票的检票通道 */
   line3: string;
 
-  /** 第四行显示内容 (仅安卓闸机有效) */
+  /** 第四行显示内容 (仅安卓闸机有效) 已检票的检票时间*/
   line4: string;
 
   /** 第五行显示内容 (仅安卓闸机有效)  闸机通道名称 */
@@ -510,9 +510,35 @@ const App: React.FC = () => {
                   人证不匹配
                 </p>
               ) : ( // Default to "无效票" for other non-zero, non-83 cmd values
-                  <p className="success-message" style={{color: '#dc3545' }}>
-                  无效票
-                </p>
+                  <>
+
+                    <p className="success-message" style={{color: '#dc3545'}}>
+                      {ticketData.voice}
+                    </p>
+                    
+                    {ticketData.line1 && ticketData.line1.trim() !== "" && (
+                      <h2 className="ticket-type">{ticketData.line1}</h2>
+                    )}
+                    {ticketData.line2 && ticketData.line2.trim() !== "" && (
+                      <p className="ticket-stat-line">
+                        <span className="stat-label">已检票数/购票数：</span>
+                        <span className="stat-value">{ticketData.line2}</span>
+                      </p>
+                    )}
+                    {ticketData.line3 && ticketData.line3.trim() !== "" && (
+                      <p className="ticket-stat-line">
+                        <span className="stat-label">检票通道：</span>
+                        <span className="stat-value">{ticketData.line3}</span>
+                      </p>
+                    )}
+                    {ticketData.line4 && ticketData.line4.trim() !== "" && (
+                      <p className="ticket-stat-line">
+                        <span className="stat-label">检票时间：</span>
+                        <span className="stat-value">{ticketData.line4}</span>
+                      </p>
+                    )}
+                  </>
+
               )}
             </div>
           )}
