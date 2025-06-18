@@ -80,6 +80,17 @@ const App: React.FC = () => {
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
   // const [showInfoDetails, setShowInfoDetails] = useState<boolean>(false); // This state is no longer needed for this specific logic
   const displayTimeoutRef = useRef<number | null>(null); // Ref to store the timeout ID
+  const [dateTime, setDateTime] = useState<string>(() =>
+    new Date().toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    }).replace(/\//g, '年').replace(/\//g, '月').replace(/\s/, '日 ')
+  );
 
   useEffect(() => {
     console.log('[App.tsx] Initial useEffect for voice setup running.');
@@ -462,6 +473,23 @@ const App: React.FC = () => {
   //   }
   // }, [ticketData.voice]);
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDateTime(
+        new Date().toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        }).replace(/\//g, '年').replace(/\//g, '月').replace(/\s/, '日 ')
+      );
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <div className="container">
       <audio ref={audioRef} style={{ display: 'none' }} />
@@ -470,17 +498,9 @@ const App: React.FC = () => {
 {/*      {error && <p style={{ color: 'red' }}>错误: {error}</p>}*/}
       <div className="card">
         <div className="left-section">
-          <div className="logo-and-datetime-wrapper"> {/* New wrapper div */}
+          <div className="logo-and-datetime-wrapper">
             <img src="Group 1321318654@2x.png" alt="Logo" className="logo" />
-            <p className="date-time">{new Date().toLocaleString('zh-CN', {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-              hour12: false
-            }).replace(/\//g, '年').replace(/\//g, '月').replace(/\s/, '日 ')}</p>
+            <p className="date-time">{dateTime}</p>
           </div>
           {ticketData.cmd !== 0 && ( // Conditionally render the info div based on cmd
             <div className="info">
