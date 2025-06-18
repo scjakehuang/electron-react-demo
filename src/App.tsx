@@ -554,7 +554,7 @@ const App: React.FC = () => {
 
         </div>
       </div>
-      <footer className="footer">云程票务</footer>
+      <footer className="footer">检票系统</footer>
     </div>
   );
 };

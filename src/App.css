@@ -10,10 +10,38 @@ body {
   background-color: #000;
   color: #fff;
   font-family: Arial, sans-serif;
-  min-height: 100vh;
+  width: 800px;
+  height: 600px;
+  min-width: 800px;
+  min-height: 600px;
+  max-width: 800px;
+  max-height: 600px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* 主内容区 */
+.container {
+  width: 800px;
+  height: 600px;
+  min-width: 800px;
+  min-height: 600px;
+  max-width: 800px;
+  max-height: 600px;
+  background: #000;
+  position: absolute; /* 用 absolute 保证覆盖整个 body */
+  top: 0;
+  left: 0;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
+  align-items: stretch;
 }
+
 
 /* 顶部标题 */
 .title {
@@ -25,46 +53,46 @@ body {
   color: #ffffff;
   text-align: center;
   font-family: "PingFang SC";
-  font-size: 50px;
+  font-size: 60px;
   font-style: normal;
   font-weight: 600;
   line-height: normal;
-  margin-top: 47.5px;
+  margin-top: 61px;
   margin-bottom: 27px;
-}
-
-/* 主内容区 */
-.container {
-  /*width: 95%;*/
-  /*max-width: 1200px;*/
-  /*margin: 0 auto;*/
-  /*padding: 1rem;*/
-
-  width: 673px;
-  height: 480px;
-  background: #000;
 }
 
 .card {
   background-color: #fff;
   border-radius: 12px;
   display: flex;
-
-  width: 622px;
-  height: 265.5px;
-  flex-shrink: 0;
-  fill: #FFF;
-  filter: drop-shadow(0 5px 5px #0000000d);
+  width: 750px;
+  height: 318px;
+  min-width: 750px;
+  min-height: 318px;
+  max-width: 750px;
+  max-height: 318px;
+  box-shadow: 0 5px 5px #0000000d;
+  overflow: hidden;
+  border: none;
+  margin-left: 25px;
+  margin-right: 25px;
+  /* 防止子元素撑破高度 */
+  align-items: stretch;
 }
 
 /* 左侧区域 */
 .left-section {
-  flex: 2;
-  /* padding: 2rem; */ /* 修改此处的 padding */
-  /* padding: calc(2rem - 15px) 2rem 2rem; */ /* 原来的 padding */
-  /* 修改为: top, right, bottom, left */
-  padding: calc(2rem - 15px) 2rem 2rem calc(2rem - 15px); /* 左边 padding 减少 15px */
+  width: 492px;
+  min-width: 492px;
+  max-width: 492px;
+  height: 318px;
+  min-height: 318px;
+  max-height: 318px;
   color: #333;
+  padding: calc(2rem - 10px) 2rem 2rem calc(2rem - 10px);
+  box-sizing: border-box;
+  background: transparent;
+  flex: none;
 }
 
 .logo-and-datetime-wrapper {
@@ -75,15 +103,16 @@ body {
 
   color: #333333;
   font-family: "PingFang SC";
-  font-size: 15px;
+  font-size: 18px;
   font-style: normal;
   font-weight: 500;
   line-height: normal;
 }
 
 .logo {
-  width: 38.37px;
+  width: 46px;
   height: auto;
+  flex-shrink: 0;
   margin-right: 1rem;
 }
 
@@ -96,13 +125,13 @@ body {
   font-size: 1.8rem;
   margin-bottom: 1rem;
 
-  width: 354.5px;
+  width: 425px;
   color: #e60020;
   font-family: "PingFang SC";
-  font-size: 15px;
+  font-size: 18px;
   font-style: normal;
   font-weight: 400;
-  line-height: 25px;
+  line-height: 30px;
 }
 
 .success-message {
@@ -110,7 +139,7 @@ body {
   color: #dc3545;*/
 
   font-family: "PingFang SC";
-  font-size: 50px;
+  font-size: 60px;
   font-style: normal;
   font-weight: 600;
   line-height: normal;
@@ -124,16 +153,16 @@ body {
 
 /* 新增样式 */
 .ticket-stat-line {
-  font-size: 1rem; /* 可根据需要调整字体大小 */
+  font-size: 1rem; /* 可根��需要调整字体大小 */
   color: #333; /* 可根据需要调整字体颜色 */
   margin-top: 5px; /* 可根据需要调整与上方元素的间距 */
   text-align: left; /* 修改为左对齐 */
 }
 
 .stat-label {
-  /* 如果需要，可以为标签添加特定样式 */
+  /* 如果需要，可��为标签添加特定样式 */
   /* font-weight: normal; */
-  color: #e60020; /* 示例：让数值使用主题红色 */
+  color: #e60020; /* 示例：让数值使用主���红色 */
 }
 
 .stat-value {
@@ -144,16 +173,20 @@ body {
 
 /* 右侧区域 */
 .right-section {
-  flex: 1;
+  width: 258px;
+  min-width: 258px;
+  max-width: 258px;
+  height: 318px;
+  min-height: 318px;
+  max-height: 318px;
   padding: 2rem;
+  box-sizing: border-box;
   border-left: 1px solid #ddd;
   color: #333;
-
-  width: 215px;
-  height: 265.5px;
-  border-radius: undefinedpx undefinedpx undefinedpx undefinedpx;
-  opacity: 1;
   background: #6a6a6a1a;
+  border-radius: 0 12px 12px 0;
+  opacity: 1;
+  flex: none;
 }
 
 .gate {
@@ -161,7 +194,7 @@ body {
   /*margin-bottom: 1.5rem;*/
   color: #333333;
   font-family: "PingFang SC";
-  font-size: 30px;
+  font-size: 36px;
   font-style: normal;
   font-weight: 500;
   line-height: normal;
@@ -175,10 +208,10 @@ body {
 
   color: #e60020;
   font-family: "PingFang SC";
-  font-size: 15px;
+  font-size: 18px;
   font-style: normal;
   font-weight: 400;
-  line-height: 25px;
+  line-height: 30px;
   margin-top: 30px;
   text-align: center;
 }
@@ -189,10 +222,10 @@ body {
 
   color: #e60020;
   font-family: "PingFang SC";
-  font-size: 15px;
+  font-size: 18px;
   font-style: normal;
   font-weight: 400;
-  line-height: 25px;
+  line-height: 30px;
   margin-top: 10px;
   text-align: center;
 }
@@ -210,7 +243,7 @@ body {
   color: #ffffff;
   text-align: center;
   font-family: "PingFang SC";
-  font-size: 15px;
+  font-size: 14px;
   font-style: normal;
   font-weight: 600;
   line-height: normal;

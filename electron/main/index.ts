@@ -105,9 +105,9 @@ async function createWindow() {
   try {
     win = new BrowserWindow({
       width: 800, // Initial width, will be overridden by fullscreen
-      height: 550, // Initial height, will be overridden by fullscreen
+      height: 600, // Initial height, will be overridden by fullscreen
       show: false, // Use 'ready-to-show' event
-      fullscreen: true, // Open in fullscreen mode
+      // fullscreen: true, // Open in fullscreen mode
       frame: false, // Set back to false for a frameless window
       // kiosk: true, // Alternative for a more restrictive fullscreen, implies fullscreen:true and frame:false
       webPreferences: {
