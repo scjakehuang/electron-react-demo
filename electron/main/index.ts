@@ -71,7 +71,7 @@ ipcMain.handle('check-ticket', async (_, ticketData) => {
           'Content-Length': Buffer.byteLength(postData)
         }
       }
-      
+
       console.log('IPC HANDLER: check-ticket - Sending HTTP request to API server with options:', options);
       const req = http.request(options, (res) => {
         let data = ''
@@ -104,8 +104,10 @@ async function createWindow() {
   log.info('Creating main window...');
   try {
     win = new BrowserWindow({
-      width: 800, // Initial width, will be overridden by fullscreen
-      height: 600, // Initial height, will be overridden by fullscreen
+      width: 800,
+      height: 600,
+      center: true, // Add this to center the window
+      resizable: false, // Add this to prevent resizing
       show: false, // Use 'ready-to-show' event
       fullscreen: true, // Open in fullscreen mode
       frame: false, // Set back to false for a frameless window
@@ -190,10 +192,10 @@ async function createWindow() {
     //     callback(true); // Default grant other permissions
     //   }
     // );
-    
+
     const devServerUrl = process.env.VITE_DEV_SERVER_URL;
     console.log(`VITE_DEV_SERVER_URL: ${devServerUrl || 'Not set (production mode expected)'}`);
-    
+
     if (devServerUrl) {
       console.log(`Loading URL: ${devServerUrl}`);
       win.loadURL(devServerUrl)
@@ -224,7 +226,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 app.on('ready', () => { // Changed from whenReady().then() to direct event for clarity
   console.log('App "ready" event fired.');
-  
+
 
   console.log('Starting API server...');
   try {
@@ -249,7 +251,7 @@ app.on('ready', () => { // Changed from whenReady().then() to direct event for c
   } catch (error) {
     console.error('Failed to set ticket update callback:', error);
   }
-  
+
   createWindow();
 });
 
