@@ -42,6 +42,9 @@ interface TicketRequest {
    */
   showcount?: number;
 
+  /** 人数统计总数 (例：本站今日已检票数) */
+  totalcount?: number;
+
   /** 人数统计标题 (例："今日入场") */
   title?: string;
 
@@ -73,7 +76,7 @@ let checkResults: Array<{
 // 检票接口
 router.post('/api/check-ticket', (ctx: Context) => {
   const body = ctx.request.body as TicketRequest // Use the more specific TicketRequest
-  const { cmd, personnum, line1, line2, line3, line4, line5, voice, filename, showcount, entrycount, title} = body
+  const { cmd, personnum, line1, line2, line3, line4, line5, voice, filename, showcount, totalcount, entrycount, title} = body
 
   if (!cmd) {
     ctx.status = 400
@@ -100,6 +103,7 @@ router.post('/api/check-ticket', (ctx: Context) => {
     voice: voice || '',
     filename: filename || '',
     showcount: showcount || 0,
+    totalcount: totalcount || 0,
     title: title || '',
     entrycount: entrycount || 0
   };

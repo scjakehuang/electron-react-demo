@@ -40,6 +40,9 @@ interface TicketData {
    */
   showcount: number;
 
+    /** 本站今日已检票数 */
+  totalcount: number;
+
   /** 人数统计标题 (例："今日入场") */
   title: string;
 
@@ -66,6 +69,7 @@ const App: React.FC = () => {
     voice: '',
     filename: '',
     showcount: 0,
+    totalcount: 0,
     title: '',
     entrycount: 0
   });
@@ -569,7 +573,7 @@ const App: React.FC = () => {
             本机: <span className="count">{ticketData.entrycount}</span>
           </p>
           <p className="station-info">
-            本站: <span className="count">{ticketData.showcount}</span>
+            本站: <span className="count">{ticketData.totalcount}</span>
           </p>
 
         </div>
